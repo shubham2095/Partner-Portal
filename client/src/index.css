@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-background text-text-primary font-sans;
+    margin: 0;
+  }
+
+  h1 {
+    @apply text-2xl font-semibold text-text-primary;
+  }
+
+  h2 {
+    @apply text-xl font-semibold text-text-primary;
+  }
+
+  h3 {
+    @apply text-lg font-semibold text-text-primary;
+  }
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-surface;
+  }
+}

@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS tests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT NULL,
+  instructions TEXT NULL,
+  webinar_id INT NULL,
+  duration_minutes INT NOT NULL DEFAULT 30,
+  passing_percentage DECIMAL(5,2) NOT NULL DEFAULT 70.00,
+  total_marks DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+  max_attempts INT NOT NULL DEFAULT 1,
+  negative_marking_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  randomize_questions TINYINT(1) NOT NULL DEFAULT 0,
+  question_count INT NOT NULL DEFAULT 0,
+  status ENUM('DRAFT','PUBLISHED','ACTIVE','CLOSED','ARCHIVED') NOT NULL DEFAULT 'DRAFT',
+  created_by INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_tests_status (status),
+  INDEX idx_tests_webinar (webinar_id),
+  CONSTRAINT fk_tests_webinar FOREIGN KEY (webinar_id) REFERENCES webinars(id) ON DELETE SET NULL,
+  CONSTRAINT fk_tests_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

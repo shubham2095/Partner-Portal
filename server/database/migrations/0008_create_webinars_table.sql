@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS webinars (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT NULL,
+  speaker_name VARCHAR(150) NULL,
+  speaker_bio TEXT NULL,
+  scheduled_at DATETIME NOT NULL,
+  duration_minutes INT NULL,
+  registration_url VARCHAR(500) NULL,
+  meeting_url VARCHAR(500) NULL,
+  recording_url VARCHAR(500) NULL,
+  training_material_url VARCHAR(500) NULL,
+  status ENUM('DRAFT','PUBLISHED','LIVE','COMPLETED','CANCELLED','ARCHIVED') NOT NULL DEFAULT 'DRAFT',
+  created_by INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_webinars_status (status),
+  INDEX idx_webinars_scheduled_at (scheduled_at),
+  CONSTRAINT fk_webinars_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS questions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  question_text TEXT NOT NULL,
+  question_type ENUM('MCQ') NOT NULL DEFAULT 'MCQ',
+  options JSON NOT NULL,
+  correct_answer VARCHAR(10) NOT NULL,
+  explanation TEXT NULL,
+  marks DECIMAL(5,2) NOT NULL DEFAULT 1.00,
+  negative_marks DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+  category VARCHAR(100) NULL,
+  difficulty ENUM('EASY','MEDIUM','HARD') NOT NULL DEFAULT 'MEDIUM',
+  status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+  created_by INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_questions_category (category),
+  INDEX idx_questions_difficulty (difficulty),
+  INDEX idx_questions_status (status),
+  CONSTRAINT fk_questions_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
