@@ -34,6 +34,10 @@ import AdminTrainingDetailPage from '../admin/training/TrainingDetailPage'
 import FreelancerTrainingListPage from '../freelancer/training/TrainingListPage'
 import FreelancerTrainingDetailPage from '../freelancer/training/TrainingDetailPage'
 import FreelancerLessonPage from '../freelancer/training/LessonPage'
+import AdminLeadListPage from '../admin/leads/LeadListPage'
+import AdminLeadDetailPage from '../admin/leads/LeadDetailPage'
+import FreelancerLeadListPage from '../freelancer/leads/LeadListPage'
+import FreelancerLeadDetailPage from '../freelancer/leads/LeadDetailPage'
 import VerifyCertificatePage from '../public/VerifyCertificatePage'
 
 const router = createBrowserRouter([
@@ -76,6 +80,8 @@ const router = createBrowserRouter([
           { path: 'certificates/:id', element: <AdminCertificateDetailPage /> },
           { path: 'training', element: <AdminTrainingListPage /> },
           { path: 'training/:id', element: <AdminTrainingDetailPage /> },
+          { path: 'leads', element: <AdminLeadListPage /> },
+          { path: 'leads/:id', element: <AdminLeadDetailPage /> },
         ],
       },
     ],
@@ -100,6 +106,8 @@ const router = createBrowserRouter([
           { path: 'training', element: <FreelancerTrainingListPage /> },
           { path: 'training/:id', element: <FreelancerTrainingDetailPage /> },
           { path: 'training/:trainingId/lessons/:lessonId', element: <FreelancerLessonPage /> },
+          { path: 'leads', element: <FreelancerLeadListPage /> },
+          { path: 'leads/:id', element: <FreelancerLeadDetailPage /> },
         ],
       },
       {

@@ -1,0 +1,148 @@
+import { pool } from '../config/database.js'
+
+export async function createFollowUp(
+  { leadId, scheduledAt, followUpType, notes, createdBy },
+  executor = pool
+) {
+  const [result] = await executor.query(
+    `INSERT INTO follow_ups (lead_id, scheduled_at, follow_up_type, notes, created_by)
+     VALUES (?, ?, ?, ?, ?)`,
+    [leadId, scheduledAt, followUpType, notes ?? null, createdBy]
+  )
+  return result.insertId
+}
+
+export async function findFollowUpById(id, executor = pool) {
+  const [rows] = await executor.query('SELECT * FROM follow_ups WHERE id = ? LIMIT 1', [id])
+  return rows[0] ?? null
+}
+
+export async function findFollowUpWithLead(id, executor = pool) {
+  const [rows] = await executor.query(
+    `SELECT fu.*, l.assigned_freelancer_id, l.client_name AS lead_client_name
+     FROM follow_ups fu
+     INNER JOIN leads l ON l.id = fu.lead_id
+     WHERE fu.id = ? LIMIT 1`,
+    [id]
+  )
+  return rows[0] ?? null
+}
+
+const FOLLOWUP_FIELDS = ['scheduled_at', 'follow_up_type', 'notes']
+
+export async function updateFollowUp(id, fields, executor = pool) {
+  const entries = Object.entries(fields).filter(([key, value]) => FOLLOWUP_FIELDS.includes(key) && value !== undefined)
+  if (entries.length === 0) return
+  const setClause = entries.map(([key]) => `${key} = ?`).join(', ')
+  const values = entries.map(([, value]) => value)
+  await executor.query(`UPDATE follow_ups SET ${setClause} WHERE id = ?`, [...values, id])
+}
+
+export async function completeFollowUp(id, { outcome, nextFollowUpDate }, executor = pool) {
+  await executor.query(
+    `UPDATE follow_ups
+     SET status = 'COMPLETED', outcome = ?, next_follow_up_date = ?, completed_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [outcome ?? null, nextFollowUpDate ?? null, id]
+  )
+}
+
+export async function cancelFollowUp(id, executor = pool) {
+  await executor.query("UPDATE follow_ups SET status = 'CANCELLED' WHERE id = ?", [id])
+}
+
+export async function listFollowUpsByLead(leadId, executor = pool) {
+  const [rows] = await executor.query(
+    `SELECT fu.*, u.email AS created_by_email
+     FROM follow_ups fu
+     LEFT JOIN users u ON u.id = fu.created_by
+     WHERE fu.lead_id = ?
+     ORDER BY fu.scheduled_at DESC`,
+    [leadId]
+  )
+  return rows
+}
+
+function applyBucketCondition(bucket, conditions, params) {
+  if (!bucket) return
+  conditions.push("fu.status = 'PENDING'")
+  if (bucket === 'overdue') {
+    conditions.push('fu.scheduled_at < NOW()')
+  } else if (bucket === 'today') {
+    conditions.push('DATE(fu.scheduled_at) = CURDATE()')
+  } else if (bucket === 'tomorrow') {
+    conditions.push('DATE(fu.scheduled_at) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)')
+  } else if (bucket === 'upcoming') {
+    conditions.push('DATE(fu.scheduled_at) > DATE_ADD(CURDATE(), INTERVAL 1 DAY)')
+  }
+}
+
+export async function listFollowUpsAdmin(
+  { bucket, status, assignedFreelancerId, page = 1, limit = 20 },
+  executor = pool
+) {
+  const conditions = []
+  const params = []
+
+  applyBucketCondition(bucket, conditions, params)
+  if (!bucket && status) {
+    conditions.push('fu.status = ?')
+    params.push(status)
+  }
+  if (assignedFreelancerId) {
+    conditions.push('l.assigned_freelancer_id = ?')
+    params.push(assignedFreelancerId)
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  const offset = (page - 1) * limit
+
+  const [rows] = await executor.query(
+    `SELECT fu.*, l.lead_number, l.client_name, l.assigned_freelancer_id
+     FROM follow_ups fu
+     INNER JOIN leads l ON l.id = fu.lead_id
+     ${whereClause}
+     ORDER BY fu.scheduled_at ASC
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  )
+  const [countRows] = await executor.query(
+    `SELECT COUNT(*) AS total FROM follow_ups fu INNER JOIN leads l ON l.id = fu.lead_id ${whereClause}`,
+    params
+  )
+
+  return { rows, total: countRows[0].total }
+}
+
+export async function listFollowUpsForFreelancer(
+  { freelancerId, bucket, status, page = 1, limit = 20 },
+  executor = pool
+) {
+  const conditions = ['l.assigned_freelancer_id = ?']
+  const params = [freelancerId]
+
+  applyBucketCondition(bucket, conditions, params)
+  if (!bucket && status) {
+    conditions.push('fu.status = ?')
+    params.push(status)
+  }
+
+  const whereClause = `WHERE ${conditions.join(' AND ')}`
+  const offset = (page - 1) * limit
+
+  const [rows] = await executor.query(
+    `SELECT fu.*, l.lead_number, l.client_name
+     FROM follow_ups fu
+     INNER JOIN leads l ON l.id = fu.lead_id
+     ${whereClause}
+     ORDER BY fu.scheduled_at ASC
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  )
+  const [countRows] = await executor.query(
+    `SELECT COUNT(*) AS total FROM follow_ups fu INNER JOIN leads l ON l.id = fu.lead_id ${whereClause}`,
+    params
+  )
+
+  return { rows, total: countRows[0].total }
+}

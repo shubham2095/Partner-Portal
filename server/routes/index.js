@@ -14,6 +14,8 @@ import freelancerCertificateRoutes from './freelancerCertificate.routes.js'
 import verifyRoutes from './verify.routes.js'
 import adminTrainingRoutes from './adminTraining.routes.js'
 import freelancerTrainingRoutes from './freelancerTraining.routes.js'
+import adminLeadRoutes from './adminLead.routes.js'
+import freelancerLeadRoutes from './freelancerLead.routes.js'
 
 const router = Router()
 
@@ -31,6 +33,8 @@ router.use('/freelancer/attempts', attemptRoutes)
 router.use('/freelancer/certificates', freelancerCertificateRoutes)
 router.use('/admin/training', adminTrainingRoutes)
 router.use('/freelancer/training', freelancerTrainingRoutes)
+router.use('/admin/leads', adminLeadRoutes)
+router.use('/freelancer/leads', freelancerLeadRoutes)
 router.use('/verify', verifyRoutes)
 
 export default router

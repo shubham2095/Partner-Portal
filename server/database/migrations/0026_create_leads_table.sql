@@ -1,0 +1,33 @@
+CREATE TABLE IF NOT EXISTS leads (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  lead_number VARCHAR(20) NULL,
+  client_name VARCHAR(150) NOT NULL,
+  company VARCHAR(150) NULL,
+  mobile VARCHAR(20) NOT NULL,
+  email VARCHAR(150) NULL,
+  location VARCHAR(150) NULL,
+  business_category VARCHAR(150) NULL,
+  service_interested VARCHAR(150) NULL,
+  source VARCHAR(100) NULL,
+  lead_date DATE NOT NULL,
+  assigned_freelancer_id INT NULL,
+  status ENUM(
+    'NEW','CONTACT_ATTEMPTED','CONTACTED','INTERESTED','MEETING_SCHEDULED',
+    'PROPOSAL_SENT','NEGOTIATION','FOLLOW_UP','CONVERTED','NOT_INTERESTED',
+    'WRONG_NUMBER','LOST','FUTURE_OPPORTUNITY'
+  ) NOT NULL DEFAULT 'NEW',
+  expected_value DECIMAL(12,2) NULL,
+  conversion_value DECIMAL(12,2) NULL,
+  follow_up_date DATETIME NULL,
+  notes TEXT NULL,
+  created_by INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_leads_lead_number (lead_number),
+  INDEX idx_leads_status (status),
+  INDEX idx_leads_assigned_freelancer_id (assigned_freelancer_id),
+  INDEX idx_leads_source (source),
+  INDEX idx_leads_lead_date (lead_date),
+  CONSTRAINT fk_leads_assigned_freelancer FOREIGN KEY (assigned_freelancer_id) REFERENCES freelancer_profiles(id) ON DELETE SET NULL,
+  CONSTRAINT fk_leads_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,0 +1,31 @@
+export const LEAD_STATUSES = [
+  'NEW',
+  'CONTACT_ATTEMPTED',
+  'CONTACTED',
+  'INTERESTED',
+  'MEETING_SCHEDULED',
+  'PROPOSAL_SENT',
+  'NEGOTIATION',
+  'FOLLOW_UP',
+  'CONVERTED',
+  'NOT_INTERESTED',
+  'WRONG_NUMBER',
+  'LOST',
+  'FUTURE_OPPORTUNITY',
+]
+
+export const STATUS_VARIANTS = {
+  NEW: 'info',
+  CONTACT_ATTEMPTED: 'default',
+  CONTACTED: 'default',
+  INTERESTED: 'info',
+  MEETING_SCHEDULED: 'info',
+  PROPOSAL_SENT: 'warning',
+  NEGOTIATION: 'warning',
+  FOLLOW_UP: 'warning',
+  CONVERTED: 'success',
+  NOT_INTERESTED: 'danger',
+  WRONG_NUMBER: 'danger',
+  LOST: 'danger',
+  FUTURE_OPPORTUNITY: 'default',
+}
