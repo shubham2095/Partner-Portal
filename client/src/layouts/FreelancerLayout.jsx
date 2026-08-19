@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom'
-import { BottomNav, Topbar } from '../components/navigation'
+import { BottomNav, Sidebar, Topbar } from '../components/navigation'
 
 const NAV_ITEMS = [
   { to: '/freelancer/dashboard', label: 'Home' },
@@ -14,11 +14,16 @@ const NAV_ITEMS = [
 
 export default function FreelancerLayout() {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <Topbar />
-      <main className="flex-1 overflow-y-auto p-4 pb-20 sm:pb-4">
-        <Outlet />
-      </main>
+    <div className="flex min-h-screen w-full bg-background">
+      <div className="hidden sm:flex">
+        <Sidebar items={NAV_ITEMS} title="Freelancer Portal" />
+      </div>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Topbar />
+        <main className="flex-1 overflow-y-auto p-4 pb-20 sm:pb-4">
+          <Outlet />
+        </main>
+      </div>
       <BottomNav items={NAV_ITEMS} />
     </div>
   )

@@ -1,0 +1,282 @@
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import toast from 'react-hot-toast'
+import { Button, Badge, Modal, Card, LoadingState, ErrorState } from '../../components/ui'
+import { Input, Select, Textarea } from '../../components/forms'
+import { LEAD_STATUSES, STATUS_VARIANTS } from '../../utils/leadConstants'
+import {
+  getMyLeadDetail,
+  changeMyLeadStatus,
+  getMyLeadTimeline,
+  addMyActivity,
+  listFollowUpsForLead,
+  createFollowUp,
+  completeFollowUp,
+  cancelFollowUp,
+} from '../../services/freelancerLeadService'
+
+const ACTIVITY_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT', 'NOTE_ADDED']
+const FOLLOWUP_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT']
+const TERMINAL_STATUSES = new Set(['CONVERTED', 'LOST'])
+
+export default function LeadDetailPage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [lead, setLead] = useState(null)
+  const [status, setStatus] = useState('loading')
+  const [statusValue, setStatusValue] = useState('')
+  const [conversionValue, setConversionValue] = useState('')
+  const [isBusy, setIsBusy] = useState(false)
+  const [isActivityOpen, setIsActivityOpen] = useState(false)
+  const [isFollowUpOpen, setIsFollowUpOpen] = useState(false)
+  const [timeline, setTimeline] = useState({ activities: [], assignments: [] })
+  const [followUps, setFollowUps] = useState([])
+  const [completingFollowUp, setCompletingFollowUp] = useState(null)
+
+  const activityForm = useForm({ defaultValues: { activityType: 'PHONE_CALL', description: '' } })
+  const followUpForm = useForm({ defaultValues: { scheduledAt: '', followUpType: 'PHONE_CALL', notes: '' } })
+  const completeForm = useForm({ defaultValues: { outcome: '', nextFollowUpDate: '' } })
+
+  const loadAll = async () => {
+    setStatus('loading')
+    try {
+      const [leadData, timelineData, followUpsData] = await Promise.all([
+        getMyLeadDetail(id),
+        getMyLeadTimeline(id),
+        listFollowUpsForLead(id),
+      ])
+      setLead(leadData)
+      setStatusValue(leadData.status)
+      setTimeline(timelineData)
+      setFollowUps(followUpsData)
+      setStatus('ready')
+    } catch (error) {
+      setStatus('error')
+    }
+  }
+
+  useEffect(() => {
+    loadAll()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+
+  const handleStatusChange = async () => {
+    setIsBusy(true)
+    try {
+      await changeMyLeadStatus(id, statusValue, statusValue === 'CONVERTED' ? Number(conversionValue) || undefined : undefined)
+      toast.success('Lead status updated')
+      setConversionValue('')
+      await loadAll()
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  const onAddActivity = async (values) => {
+    try {
+      await addMyActivity(id, values.activityType, values.description)
+      toast.success('Activity recorded')
+      setIsActivityOpen(false)
+      activityForm.reset()
+      await loadAll()
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    }
+  }
+
+  const onCreateFollowUp = async (values) => {
+    try {
+      await createFollowUp(id, values)
+      toast.success('Follow-up created')
+      setIsFollowUpOpen(false)
+      followUpForm.reset()
+      await loadAll()
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    }
+  }
+
+  const onCompleteFollowUp = async (values) => {
+    try {
+      await completeFollowUp(completingFollowUp.id, values.outcome, values.nextFollowUpDate || undefined)
+      toast.success('Follow-up completed')
+      setCompletingFollowUp(null)
+      completeForm.reset()
+      await loadAll()
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    }
+  }
+
+  const handleCancelFollowUp = async (followUpId) => {
+    try {
+      await cancelFollowUp(followUpId)
+      toast.success('Follow-up cancelled')
+      await loadAll()
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    }
+  }
+
+  if (status === 'loading') return <LoadingState label="Loading lead..." />
+  if (status === 'error') return <ErrorState onRetry={loadAll} />
+
+  const isClosed = TERMINAL_STATUSES.has(lead.status)
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Button variant="ghost" size="sm" onClick={() => navigate('/freelancer/leads')} className="w-fit">
+        ← Back to My Leads
+      </Button>
+
+      <Card className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary">
+              {lead.client_name} {lead.company && <span className="text-text-secondary">({lead.company})</span>}
+            </h2>
+            <p className="text-sm text-text-secondary">
+              {lead.lead_number} · {lead.mobile} {lead.email && `· ${lead.email}`}
+            </p>
+          </div>
+          <Badge variant={STATUS_VARIANTS[lead.status] ?? 'default'}>{lead.status.replace(/_/g, ' ')}</Badge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-sm text-text-secondary sm:grid-cols-4">
+          <span>Location: {lead.location ?? '—'}</span>
+          <span>Category: {lead.business_category ?? '—'}</span>
+          <span>Service: {lead.service_interested ?? '—'}</span>
+          <span>Source: {lead.source ?? '—'}</span>
+          <span>Expected: {lead.expected_value ? `₹${lead.expected_value}` : '—'}</span>
+          <span>Conversion: {lead.conversion_value ? `₹${lead.conversion_value}` : '—'}</span>
+        </div>
+        {lead.notes && <p className="text-sm text-text-secondary">Notes: {lead.notes}</p>}
+
+        {isClosed ? (
+          <p className="text-sm text-text-secondary">This lead is closed ({lead.status.replace(/_/g, ' ')}).</p>
+        ) : (
+          <div className="flex flex-wrap items-end gap-2 pt-2">
+            <Select
+              id="statusValue"
+              label="Change Status"
+              options={LEAD_STATUSES.map((value) => ({ value, label: value.replace(/_/g, ' ') }))}
+              value={statusValue}
+              onChange={(event) => setStatusValue(event.target.value)}
+            />
+            {statusValue === 'CONVERTED' && (
+              <Input
+                id="conversionValue"
+                label="Conversion Value"
+                type="number"
+                value={conversionValue}
+                onChange={(event) => setConversionValue(event.target.value)}
+              />
+            )}
+            <Button size="sm" disabled={isBusy || statusValue === lead.status} onClick={handleStatusChange}>
+              Update Status
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setIsActivityOpen(true)}>
+              Log Activity
+            </Button>
+          </div>
+        )}
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-text-primary">Follow-ups</h3>
+          {!isClosed && (
+            <Button size="sm" onClick={() => setIsFollowUpOpen(true)}>
+              Add Follow-up
+            </Button>
+          )}
+        </div>
+        {followUps.length === 0 && <p className="text-sm text-text-secondary">No follow-ups yet.</p>}
+        {followUps.map((fu) => (
+          <div key={fu.id} className="flex items-center justify-between rounded border border-border p-3 text-sm">
+            <div>
+              <p className="font-medium text-text-primary">
+                {fu.follow_up_type.replace(/_/g, ' ')} — {new Date(fu.scheduled_at).toLocaleString()}
+              </p>
+              {fu.notes && <p className="text-text-secondary">{fu.notes}</p>}
+              {fu.outcome && <p className="text-text-secondary">Outcome: {fu.outcome}</p>}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={fu.status === 'COMPLETED' ? 'success' : fu.status === 'CANCELLED' ? 'danger' : 'info'}>
+                {fu.status}
+              </Badge>
+              {fu.status === 'PENDING' && (
+                <>
+                  <Button size="sm" variant="secondary" onClick={() => setCompletingFollowUp(fu)}>
+                    Complete
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleCancelFollowUp(fu.id)}>
+                    Cancel
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <h3 className="text-base font-semibold text-text-primary">Timeline</h3>
+        {timeline.activities.length === 0 && <p className="text-sm text-text-secondary">No activity yet.</p>}
+        {timeline.activities.map((activity) => (
+          <div key={activity.id} className="border-b border-border pb-2 text-sm last:border-0">
+            <div className="flex items-center justify-between">
+              <Badge variant="default">{activity.activity_type.replace(/_/g, ' ')}</Badge>
+              <span className="text-xs text-text-secondary">{new Date(activity.created_at).toLocaleString()}</span>
+            </div>
+            {activity.description && <p className="mt-1 text-text-secondary">{activity.description}</p>}
+          </div>
+        ))}
+      </Card>
+
+      <Modal isOpen={isActivityOpen} onClose={() => setIsActivityOpen(false)} title="Log Activity">
+        <form onSubmit={activityForm.handleSubmit(onAddActivity)} className="flex flex-col gap-4">
+          <Select
+            id="activityType"
+            label="Type"
+            options={ACTIVITY_TYPES.map((value) => ({ value, label: value.replace(/_/g, ' ') }))}
+            {...activityForm.register('activityType')}
+          />
+          <Textarea id="activityDescription" label="Description" {...activityForm.register('description')} />
+          <Button type="submit" isLoading={activityForm.formState.isSubmitting}>
+            Save Activity
+          </Button>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isFollowUpOpen} onClose={() => setIsFollowUpOpen(false)} title="Add Follow-up">
+        <form onSubmit={followUpForm.handleSubmit(onCreateFollowUp)} className="flex flex-col gap-4">
+          <Input id="scheduledAt" label="Scheduled At" type="datetime-local" {...followUpForm.register('scheduledAt', { required: true })} />
+          <Select
+            id="followUpType"
+            label="Type"
+            options={FOLLOWUP_TYPES.map((value) => ({ value, label: value.replace(/_/g, ' ') }))}
+            {...followUpForm.register('followUpType')}
+          />
+          <Textarea id="followUpNotes" label="Notes" {...followUpForm.register('notes')} />
+          <Button type="submit" isLoading={followUpForm.formState.isSubmitting}>
+            Add Follow-up
+          </Button>
+        </form>
+      </Modal>
+
+      <Modal isOpen={Boolean(completingFollowUp)} onClose={() => setCompletingFollowUp(null)} title="Complete Follow-up">
+        <form onSubmit={completeForm.handleSubmit(onCompleteFollowUp)} className="flex flex-col gap-4">
+          <Textarea id="outcome" label="Outcome" {...completeForm.register('outcome')} />
+          <Input id="nextFollowUpDate" label="Next Follow-up Date (optional)" type="datetime-local" {...completeForm.register('nextFollowUpDate')} />
+          <Button type="submit" isLoading={completeForm.formState.isSubmitting}>
+            Mark Complete
+          </Button>
+        </form>
+      </Modal>
+    </div>
+  )
+}
