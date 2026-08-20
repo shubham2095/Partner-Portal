@@ -12,6 +12,7 @@ router.get('/', async (req, res) => {
     database = 'connected'
   } catch (error) {
     database = 'disconnected'
+    console.error('[health] Database connection failed:', error.code || error.message)
   }
 
   sendSuccess(res, {

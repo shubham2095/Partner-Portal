@@ -90,7 +90,18 @@
       "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' 'http://localhost:5000/api/v1/admin/questions?page=1&limit=20' -H 'Authorization: Bearer __CMDSUB_OUTPUT__')",
       "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' 'http://localhost:5000/api/v1/admin/certificates?page=1&limit=20' -H 'Authorization: Bearer __CMDSUB_OUTPUT__')",
       "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' 'http://localhost:5000/api/v1/freelancer/webinars?page=1&limit=20' -H 'Authorization: Bearer __TRACKED_VAR__')",
-      "Bash(rm -f /tmp/should_not_exist.pdf /tmp/restricted.pdf /tmp/qa-material.pdf /tmp/qa_downloaded.pdf /tmp/tampered_token.txt)"
+      "Bash(rm -f /tmp/should_not_exist.pdf /tmp/restricted.pdf /tmp/qa-material.pdf /tmp/qa_downloaded.pdf /tmp/tampered_token.txt)",
+      "Bash(git status *)",
+      "Bash(git add *)",
+      "Bash(git checkout *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git ls-remote *)",
+      "Bash(git push *)",
+      "Bash(gh pr create --base main --title 'Fix missing freelancer portal navigation on desktop/tablet' --body ' *)",
+      "PowerShell(Get-Command gh -ErrorAction SilentlyContinue)",
+      "Bash(where gh *)",
+      "Read(//c/Program Files/**)",
+      "Bash(env)"
     ]
   }
 }
