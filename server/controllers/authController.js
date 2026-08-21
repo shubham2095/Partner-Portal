@@ -1,6 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendSuccess } from '../utils/apiResponse.js'
 import * as authService from '../services/authService.js'
+import { logAudit } from '../services/auditService.js'
 
 export const register = asyncHandler(async (req, res) => {
   const { email, password, fullName, mobile } = req.body
@@ -14,7 +15,7 @@ export const register = asyncHandler(async (req, res) => {
 
 export const freelancerLogin = asyncHandler(async (req, res) => {
   const { email, password } = req.body
-  const { user, token } = await authService.loginUser({ email, password, allowedRoles: ['FREELANCER'] })
+  const { user, token } = await authService.loginUser({ email, password, allowedRoles: ['FREELANCER'], req })
   sendSuccess(res, { message: 'Login successful', data: { user, token } })
 })
 
@@ -24,6 +25,7 @@ export const adminLogin = asyncHandler(async (req, res) => {
     email,
     password,
     allowedRoles: ['ADMIN', 'SUPER_ADMIN'],
+    req,
   })
   sendSuccess(res, { message: 'Login successful', data: { user, token } })
 })
@@ -34,6 +36,7 @@ export const me = asyncHandler(async (req, res) => {
 })
 
 export const logout = asyncHandler(async (req, res) => {
+  await logAudit({ actorId: req.user.id, action: 'LOGOUT', entity: 'USER', entityId: req.user.id, req })
   sendSuccess(res, { message: 'Logged out successfully' })
 })
 

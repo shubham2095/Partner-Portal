@@ -5,18 +5,24 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#2563eb',
-          hover: '#1d4ed8',
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+          DEFAULT: '#4f46e5',
+          hover: '#4338ca',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
         },
         secondary: {
           DEFAULT: '#0f172a',
           50: '#f8fafc',
           100: '#f1f5f9',
+        },
+        accent: {
+          DEFAULT: '#f59e0b',
+          hover: '#d97706',
+          bg: '#fffbeb',
         },
         success: {
           DEFAULT: '#16a34a',
@@ -37,7 +43,9 @@ export default {
         background: '#f8fafc',
         surface: '#ffffff',
         'surface-muted': '#f1f5f9',
+        'surface-elevated': '#ffffff',
         border: '#e2e8f0',
+        'border-strong': '#cbd5e1',
         'text-primary': '#0f172a',
         'text-secondary': '#475569',
         'text-muted': '#94a3b8',
@@ -51,7 +59,9 @@ export default {
         xl: '16px',
       },
       boxShadow: {
-        card: '0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04)',
+        card: '0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04)',
+        elevated: '0 12px 24px -8px rgba(15, 23, 42, 0.16), 0 4px 8px -2px rgba(15, 23, 42, 0.06)',
+        dropdown: '0 8px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 6px -1px rgba(15, 23, 42, 0.06)',
       },
       screens: {
         xs: '480px',

@@ -109,6 +109,10 @@ export async function suspendFreelancerAccount(profileId, adminId, req) {
   })
 }
 
+export async function getDocumentForDownload(documentId) {
+  return requireDocument(documentId)
+}
+
 export async function verifyFreelancerDocument(documentId, adminId, req) {
   const document = await requireDocument(documentId)
   await updateDocumentStatus(documentId, {

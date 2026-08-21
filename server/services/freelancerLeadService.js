@@ -6,6 +6,7 @@ import { createActivity, listActivitiesByLead } from '../models/leadActivityMode
 import { listAssignmentsByLead } from '../models/leadAssignmentModel.js'
 import { assertValidStatusTransition, activityTypeForStatus } from './leadStatusService.js'
 import { logAudit } from './auditService.js'
+import { notifyAdmins } from './notificationService.js'
 
 const ACTIVITY_TYPES = [
   'PHONE_CALL',
@@ -90,6 +91,16 @@ export async function changeMyLeadStatus(id, { status, conversionValue }, userId
     newValue: { status, conversionValue: conversionValue ?? null },
     req,
   })
+
+  if (status === 'CONVERTED') {
+    notifyAdmins({
+      type: 'LEAD_CONVERTED',
+      title: 'Lead converted',
+      message: `Lead #${id} was marked converted${conversionValue ? ` (₹${conversionValue})` : ''}.`,
+      relatedEntityType: 'lead',
+      relatedEntityId: id,
+    }).catch((error) => console.error('[freelancerLeadService] Failed to notify admins of conversion:', error.message))
+  }
 
   return findLeadDetailById(id)
 }

@@ -51,5 +51,28 @@ export const env = {
     verifyBaseUrl: process.env.CERTIFICATE_VERIFY_BASE_URL || 'http://localhost:5173/verify/certificate',
   },
 
+  whatsapp: {
+    apiToken: process.env.WHATSAPP_API_TOKEN || null,
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || null,
+    apiBaseUrl: process.env.WHATSAPP_API_BASE_URL || 'https://graph.facebook.com/v19.0',
+  },
+
+  metaLeadAds: {
+    appSecret: process.env.META_APP_SECRET || null,
+    verifyToken: process.env.META_WEBHOOK_VERIFY_TOKEN || null,
+    pageAccessToken: process.env.META_PAGE_ACCESS_TOKEN || null,
+    graphApiBaseUrl: process.env.META_GRAPH_API_BASE_URL || 'https://graph.facebook.com/v19.0',
+  },
+
+  googleLeadForms: {
+    sharedKey: process.env.GOOGLE_LEAD_FORMS_SHARED_KEY || null,
+  },
+
+  automation: {
+    followupReminderCron: process.env.FOLLOWUP_REMINDER_CRON || '*/15 * * * *',
+    followupReminderWindowMinutes: Number(process.env.FOLLOWUP_REMINDER_WINDOW_MINUTES) || 60,
+    schedulerEnabled: process.env.SCHEDULER_ENABLED !== 'false',
+  },
+
   isProduction: process.env.NODE_ENV === 'production',
 }

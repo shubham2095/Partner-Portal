@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import Input from '../components/forms/Input'
+import PasswordInput from '../components/forms/PasswordInput'
 import Button from '../components/ui/Button'
 import { loginAdmin } from '../services/authService'
 import { useAuthStore } from '../store/authStore'
@@ -37,11 +38,11 @@ export default function AdminLoginPage() {
         error={errors.email?.message}
         {...register('email', { required: 'Email is required' })}
       />
-      <Input
+      <PasswordInput
         id="password"
         label="Password"
-        type="password"
         placeholder="********"
+        autoComplete="current-password"
         error={errors.password?.message}
         {...register('password', { required: 'Password is required' })}
       />

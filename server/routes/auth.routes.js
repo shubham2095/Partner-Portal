@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/authenticate.js'
 import { validateRequest } from '../middleware/validateRequest.js'
+import { authLimiter } from '../middleware/rateLimiter.js'
 import {
   registerValidator,
   loginValidator,
@@ -12,12 +13,12 @@ import * as authController from '../controllers/authController.js'
 
 const router = Router()
 
-router.post('/register', registerValidator, validateRequest, authController.register)
-router.post('/login/freelancer', loginValidator, validateRequest, authController.freelancerLogin)
-router.post('/login/admin', loginValidator, validateRequest, authController.adminLogin)
+router.post('/register', authLimiter, registerValidator, validateRequest, authController.register)
+router.post('/login/freelancer', authLimiter, loginValidator, validateRequest, authController.freelancerLogin)
+router.post('/login/admin', authLimiter, loginValidator, validateRequest, authController.adminLogin)
 router.post('/verify-email', verifyEmailValidator, validateRequest, authController.verifyEmail)
-router.post('/forgot-password', forgotPasswordValidator, validateRequest, authController.forgotPassword)
-router.post('/reset-password', resetPasswordValidator, validateRequest, authController.resetPassword)
+router.post('/forgot-password', authLimiter, forgotPasswordValidator, validateRequest, authController.forgotPassword)
+router.post('/reset-password', authLimiter, resetPasswordValidator, validateRequest, authController.resetPassword)
 router.get('/me', authenticate, authController.me)
 router.post('/logout', authenticate, authController.logout)
 

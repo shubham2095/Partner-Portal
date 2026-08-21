@@ -54,6 +54,48 @@ export async function createLead(
   return result.insertId
 }
 
+export async function createExternalLead(
+  {
+    clientName,
+    mobile,
+    email,
+    serviceInterested,
+    businessCategory,
+    externalSource,
+    externalId,
+    notes,
+  },
+  executor = pool
+) {
+  const [result] = await executor.query(
+    `INSERT INTO leads
+       (client_name, mobile, email, service_interested, business_category, source, external_source, external_id,
+        lead_date, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+    [
+      clientName,
+      mobile,
+      email ?? null,
+      serviceInterested ?? null,
+      businessCategory ?? null,
+      externalSource,
+      externalSource,
+      externalId,
+      new Date().toISOString().slice(0, 10),
+      notes ?? null,
+    ]
+  )
+  return result.insertId
+}
+
+export async function findLeadByExternalId(externalSource, externalId, executor = pool) {
+  const [rows] = await executor.query(
+    'SELECT * FROM leads WHERE external_source = ? AND external_id = ? LIMIT 1',
+    [externalSource, externalId]
+  )
+  return rows[0] ?? null
+}
+
 export async function setLeadNumber(id, leadNumber, executor = pool) {
   await executor.query('UPDATE leads SET lead_number = ? WHERE id = ?', [leadNumber, id])
 }

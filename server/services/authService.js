@@ -5,6 +5,7 @@ import { ApiError } from '../utils/ApiError.js'
 import { signAccessToken, generateRandomToken } from './tokenService.js'
 import { generatePartnerId } from './partnerIdService.js'
 import { sendVerificationEmail, sendPasswordResetEmail } from './emailService.js'
+import { logAudit } from './auditService.js'
 import {
   createUser,
   findUserByEmail,
@@ -80,7 +81,7 @@ export async function registerFreelancer({ email, password, fullName, mobile }) 
   return { user: toPublicUser(user), token }
 }
 
-export async function loginUser({ email, password, allowedRoles }) {
+export async function loginUser({ email, password, allowedRoles, req }) {
   const user = await findUserByEmail(email)
   if (!user) {
     throw new ApiError(401, 'Invalid email or password')
@@ -100,6 +101,7 @@ export async function loginUser({ email, password, allowedRoles }) {
   }
 
   await updateLastLogin(user.id)
+  await logAudit({ actorId: user.id, action: 'LOGIN', entity: 'USER', entityId: user.id, newValue: { role: user.role }, req })
 
   const token = signAccessToken(user)
   return { user: toPublicUser(user), token }

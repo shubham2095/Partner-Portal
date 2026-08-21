@@ -6,6 +6,7 @@ import {
   findRegistration,
   listRegistrationsByFreelancer,
 } from '../models/webinarRegistrationModel.js'
+import { notify } from './notificationService.js'
 
 async function requireProfile(userId) {
   const profile = await findProfileByUserId(userId)
@@ -43,6 +44,18 @@ export async function registerForWebinar(webinarId, userId, { source, campaign }
   }
 
   await createRegistration({ webinarId, freelancerId: profile.id, source, campaign })
+
+  notify({
+    recipientUserId: userId,
+    type: 'WEBINAR_REGISTRATION_CONFIRMED',
+    title: 'Webinar registration confirmed',
+    message: `You're registered for ${webinar.title}.`,
+    relatedEntityType: 'webinar',
+    relatedEntityId: webinarId,
+    emailSubject: `Registration confirmed: ${webinar.title}`,
+    emailHtml: `<p>You're registered for <strong>${webinar.title}</strong>.</p>`,
+  }).catch((error) => console.error('[freelancerWebinarService] Failed to notify registration confirmation:', error.message))
+
   return findRegistration(webinarId, profile.id)
 }
 

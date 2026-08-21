@@ -26,6 +26,11 @@ export async function suspendFreelancerAccount(id) {
   await apiClient.post(`/admin/freelancers/${id}/suspend`)
 }
 
+export async function downloadFreelancerDocument(documentId) {
+  const { data } = await apiClient.get(`/admin/documents/${documentId}/download`, { responseType: 'blob' })
+  return data
+}
+
 export async function verifyFreelancerDocument(documentId) {
   await apiClient.post(`/admin/documents/${documentId}/verify`)
 }

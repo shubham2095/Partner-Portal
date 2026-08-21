@@ -1,29 +1,57 @@
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
-import { Sidebar, Topbar } from '../components/navigation'
+import {
+  LayoutDashboard,
+  Users,
+  Target,
+  Video,
+  HelpCircle,
+  ClipboardCheck,
+  Award,
+  GraduationCap,
+  TrendingUp,
+  Wallet,
+  BarChart3,
+  Plug,
+  Settings,
+} from 'lucide-react'
+import { Sidebar, Topbar, MobileNavDrawer } from '../components/navigation'
+import { PageLoader } from '../components/ui'
 
 const NAV_ITEMS = [
-  { to: '/admin/dashboard', label: 'Dashboard' },
-  { to: '/admin/freelancers', label: 'Freelancers' },
-  { to: '/admin/webinars', label: 'Webinars' },
-  { to: '/admin/questions', label: 'Questions' },
-  { to: '/admin/tests', label: 'Tests' },
-  { to: '/admin/certificates', label: 'Certificates' },
-  { to: '/admin/training', label: 'Training' },
-  { to: '/admin/leads', label: 'Leads' },
-  { to: '/admin/sales', label: 'Sales' },
-  { to: '/admin/commissions', label: 'Commissions' },
-  { to: '/admin/reports', label: 'Reports' },
-  { to: '/admin/settings', label: 'Settings' },
+  { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { section: 'Operations' },
+  { to: '/admin/freelancers', label: 'Freelancers', icon: Users },
+  { to: '/admin/leads', label: 'Leads', icon: Target },
+  { section: 'Training' },
+  { to: '/admin/webinars', label: 'Webinars', icon: Video },
+  { to: '/admin/questions', label: 'Questions', icon: HelpCircle },
+  { to: '/admin/tests', label: 'Tests', icon: ClipboardCheck },
+  { to: '/admin/certificates', label: 'Certificates', icon: Award },
+  { to: '/admin/training', label: 'Training', icon: GraduationCap },
+  { section: 'Finance' },
+  { to: '/admin/sales', label: 'Sales', icon: TrendingUp },
+  { to: '/admin/commissions', label: 'Commissions', icon: Wallet },
+  { section: 'Insights' },
+  { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
+  { section: 'System' },
+  { to: '/admin/integrations', label: 'Integrations', icon: Plug },
+  { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
 export default function AdminLayout() {
   return (
     <div className="flex h-screen w-full bg-background">
-      <Sidebar items={NAV_ITEMS} title="Admin Portal" />
+      <div className="hidden sm:flex">
+        <Sidebar items={NAV_ITEMS} title="Admin Portal" />
+      </div>
+      <MobileNavDrawer items={NAV_ITEMS} title="Admin Portal" />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+        <Topbar showMobileMenuToggle />
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

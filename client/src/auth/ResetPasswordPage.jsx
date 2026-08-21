@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import Input from '../components/forms/Input'
+import PasswordInput from '../components/forms/PasswordInput'
 import Button from '../components/ui/Button'
 import { resetPassword } from '../services/authService'
 
@@ -39,22 +39,22 @@ export default function ResetPasswordPage() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <Input
+      <PasswordInput
         id="newPassword"
         label="New Password"
-        type="password"
         placeholder="********"
+        autoComplete="new-password"
         error={errors.newPassword?.message}
         {...register('newPassword', {
           required: 'Password is required',
           minLength: { value: 8, message: 'Password must be at least 8 characters' },
         })}
       />
-      <Input
+      <PasswordInput
         id="confirmPassword"
         label="Confirm New Password"
-        type="password"
         placeholder="********"
+        autoComplete="new-password"
         error={errors.confirmPassword?.message}
         {...register('confirmPassword', {
           required: 'Please confirm your password',

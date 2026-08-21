@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Card, Badge, ProgressBar, LoadingState, ErrorState, EmptyState } from '../../components/ui'
+import { Card, Badge, ProgressBar, LoadingState, ErrorState, EmptyState, PageHeader } from '../../components/ui'
 import { listTrainings } from '../../services/freelancerTrainingService'
 
 const ACCESS_LABELS = {
@@ -35,10 +35,7 @@ export default function TrainingListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">Training Library</h2>
-        <p className="text-sm text-text-secondary">Courses, materials and videos available for your account.</p>
-      </div>
+      <PageHeader title="Training Library" description="Courses, materials and videos available for your account." />
 
       {trainings.length === 0 && (
         <EmptyState

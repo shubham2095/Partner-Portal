@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import Input from '../components/forms/Input'
+import PasswordInput from '../components/forms/PasswordInput'
 import Button from '../components/ui/Button'
 import { registerFreelancer } from '../services/authService'
 import { useAuthStore } from '../store/authStore'
@@ -56,22 +57,22 @@ export default function RegisterPage() {
         error={errors.mobile?.message}
         {...register('mobile', { required: 'Mobile is required' })}
       />
-      <Input
+      <PasswordInput
         id="password"
         label="Password"
-        type="password"
         placeholder="********"
+        autoComplete="new-password"
         error={errors.password?.message}
         {...register('password', {
           required: 'Password is required',
           minLength: { value: 8, message: 'Password must be at least 8 characters' },
         })}
       />
-      <Input
+      <PasswordInput
         id="confirmPassword"
         label="Confirm Password"
-        type="password"
         placeholder="********"
+        autoComplete="new-password"
         error={errors.confirmPassword?.message}
         {...register('confirmPassword', {
           required: 'Please confirm your password',

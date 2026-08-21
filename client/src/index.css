@@ -10,23 +10,43 @@
   body {
     @apply bg-background text-text-primary font-sans;
     margin: 0;
+    font-feature-settings: 'cv11', 'ss01';
   }
 
   h1 {
-    @apply text-2xl font-semibold text-text-primary;
+    @apply text-2xl font-bold tracking-tight text-text-primary sm:text-3xl;
   }
 
   h2 {
-    @apply text-xl font-semibold text-text-primary;
+    @apply text-xl font-semibold tracking-tight text-text-primary;
   }
 
   h3 {
-    @apply text-lg font-semibold text-text-primary;
+    @apply text-base font-semibold text-text-primary;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
 @layer utilities {
   .focus-ring {
     @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-surface;
+  }
+
+  .text-caption {
+    @apply text-xs font-medium uppercase tracking-wide text-text-muted;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
   }
 }

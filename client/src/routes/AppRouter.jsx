@@ -1,44 +1,59 @@
+import { lazy } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { PublicLayout, AuthLayout, AdminLayout, FreelancerLayout } from '../layouts'
 import ProtectedRoute from './ProtectedRoute'
-import LandingPage from '../landing/LandingPage'
-import LoginPage from '../auth/LoginPage'
-import RegisterPage from '../auth/RegisterPage'
-import AdminLoginPage from '../auth/AdminLoginPage'
-import VerifyEmailPage from '../auth/VerifyEmailPage'
-import ForgotPasswordPage from '../auth/ForgotPasswordPage'
-import ResetPasswordPage from '../auth/ResetPasswordPage'
-import AdminDashboardPage from '../admin/dashboard/AdminDashboardPage'
-import FreelancerDashboardPage from '../freelancer/dashboard/FreelancerDashboardPage'
-import FreelancerProfilePage from '../freelancer/profile/ProfilePage'
-import FreelancerDocumentsPage from '../freelancer/documents/DocumentsPage'
-import FreelancerListPage from '../admin/freelancers/FreelancerListPage'
-import FreelancerDetailPage from '../admin/freelancers/FreelancerDetailPage'
-import AdminWebinarListPage from '../admin/webinars/WebinarListPage'
-import AdminWebinarDetailPage from '../admin/webinars/WebinarDetailPage'
-import AdminQuestionListPage from '../admin/questions/QuestionListPage'
-import AdminTestListPage from '../admin/tests/TestListPage'
-import AdminTestDetailPage from '../admin/tests/TestDetailPage'
-import AdminCertificateListPage from '../admin/certificates/CertificateListPage'
-import AdminCertificateDetailPage from '../admin/certificates/CertificateDetailPage'
-import FreelancerWebinarListPage from '../freelancer/webinars/WebinarListPage'
-import FreelancerWebinarDetailPage from '../freelancer/webinars/WebinarDetailPage'
-import FreelancerTestListPage from '../freelancer/tests/TestListPage'
-import FreelancerTestInstructionsPage from '../freelancer/tests/TestInstructionsPage'
-import FreelancerTestAttemptPage from '../freelancer/tests/TestAttemptPage'
-import FreelancerTestResultPage from '../freelancer/tests/TestResultPage'
-import FreelancerCertificateListPage from '../freelancer/certificates/CertificateListPage'
-import FreelancerCertificateDetailPage from '../freelancer/certificates/CertificateDetailPage'
-import AdminTrainingListPage from '../admin/training/TrainingListPage'
-import AdminTrainingDetailPage from '../admin/training/TrainingDetailPage'
-import FreelancerTrainingListPage from '../freelancer/training/TrainingListPage'
-import FreelancerTrainingDetailPage from '../freelancer/training/TrainingDetailPage'
-import FreelancerLessonPage from '../freelancer/training/LessonPage'
-import AdminLeadListPage from '../admin/leads/LeadListPage'
-import AdminLeadDetailPage from '../admin/leads/LeadDetailPage'
-import FreelancerLeadListPage from '../freelancer/leads/LeadListPage'
-import FreelancerLeadDetailPage from '../freelancer/leads/LeadDetailPage'
-import VerifyCertificatePage from '../public/VerifyCertificatePage'
+
+// Route-level code splitting: each page is its own chunk, loaded on first
+// visit rather than bundled into the initial payload. The layouts render
+// <Outlet/> inside a <Suspense> boundary, so navigation shows PageLoader
+// instead of a blank screen while a chunk downloads.
+const LandingPage = lazy(() => import('../landing/LandingPage'))
+const LoginPage = lazy(() => import('../auth/LoginPage'))
+const RegisterPage = lazy(() => import('../auth/RegisterPage'))
+const AdminLoginPage = lazy(() => import('../auth/AdminLoginPage'))
+const VerifyEmailPage = lazy(() => import('../auth/VerifyEmailPage'))
+const ForgotPasswordPage = lazy(() => import('../auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('../auth/ResetPasswordPage'))
+const AdminDashboardPage = lazy(() => import('../admin/dashboard/AdminDashboardPage'))
+const FreelancerDashboardPage = lazy(() => import('../freelancer/dashboard/FreelancerDashboardPage'))
+const FreelancerProfilePage = lazy(() => import('../freelancer/profile/ProfilePage'))
+const FreelancerDocumentsPage = lazy(() => import('../freelancer/documents/DocumentsPage'))
+const FreelancerListPage = lazy(() => import('../admin/freelancers/FreelancerListPage'))
+const FreelancerDetailPage = lazy(() => import('../admin/freelancers/FreelancerDetailPage'))
+const AdminWebinarListPage = lazy(() => import('../admin/webinars/WebinarListPage'))
+const AdminWebinarDetailPage = lazy(() => import('../admin/webinars/WebinarDetailPage'))
+const AdminQuestionListPage = lazy(() => import('../admin/questions/QuestionListPage'))
+const AdminTestListPage = lazy(() => import('../admin/tests/TestListPage'))
+const AdminTestDetailPage = lazy(() => import('../admin/tests/TestDetailPage'))
+const AdminCertificateListPage = lazy(() => import('../admin/certificates/CertificateListPage'))
+const AdminCertificateDetailPage = lazy(() => import('../admin/certificates/CertificateDetailPage'))
+const FreelancerWebinarListPage = lazy(() => import('../freelancer/webinars/WebinarListPage'))
+const FreelancerWebinarDetailPage = lazy(() => import('../freelancer/webinars/WebinarDetailPage'))
+const FreelancerTestListPage = lazy(() => import('../freelancer/tests/TestListPage'))
+const FreelancerTestInstructionsPage = lazy(() => import('../freelancer/tests/TestInstructionsPage'))
+const FreelancerTestAttemptPage = lazy(() => import('../freelancer/tests/TestAttemptPage'))
+const FreelancerTestResultPage = lazy(() => import('../freelancer/tests/TestResultPage'))
+const FreelancerCertificateListPage = lazy(() => import('../freelancer/certificates/CertificateListPage'))
+const FreelancerCertificateDetailPage = lazy(() => import('../freelancer/certificates/CertificateDetailPage'))
+const AdminTrainingListPage = lazy(() => import('../admin/training/TrainingListPage'))
+const AdminTrainingDetailPage = lazy(() => import('../admin/training/TrainingDetailPage'))
+const FreelancerTrainingListPage = lazy(() => import('../freelancer/training/TrainingListPage'))
+const FreelancerTrainingDetailPage = lazy(() => import('../freelancer/training/TrainingDetailPage'))
+const FreelancerLessonPage = lazy(() => import('../freelancer/training/LessonPage'))
+const AdminLeadListPage = lazy(() => import('../admin/leads/LeadListPage'))
+const AdminLeadDetailPage = lazy(() => import('../admin/leads/LeadDetailPage'))
+const FreelancerLeadListPage = lazy(() => import('../freelancer/leads/LeadListPage'))
+const FreelancerLeadDetailPage = lazy(() => import('../freelancer/leads/LeadDetailPage'))
+const AdminCommissionListPage = lazy(() => import('../admin/commissions/CommissionListPage'))
+const AdminCommissionDetailPage = lazy(() => import('../admin/commissions/CommissionDetailPage'))
+const FreelancerEarningsPage = lazy(() => import('../freelancer/earnings/EarningsPage'))
+const FreelancerCommissionDetailPage = lazy(() => import('../freelancer/earnings/CommissionDetailPage'))
+const AdminIntegrationSettingsPage = lazy(() => import('../admin/integrations/IntegrationSettingsPage'))
+const AdminReportsPage = lazy(() => import('../admin/reports/ReportsPage'))
+const AdminSalesPage = lazy(() => import('../admin/sales/SalesPage'))
+const AdminSettingsPage = lazy(() => import('../admin/settings/SettingsPage'))
+const FreelancerNotificationsPage = lazy(() => import('../freelancer/notifications/NotificationsPage'))
+const VerifyCertificatePage = lazy(() => import('../public/VerifyCertificatePage'))
 
 const router = createBrowserRouter([
   {
@@ -82,6 +97,12 @@ const router = createBrowserRouter([
           { path: 'training/:id', element: <AdminTrainingDetailPage /> },
           { path: 'leads', element: <AdminLeadListPage /> },
           { path: 'leads/:id', element: <AdminLeadDetailPage /> },
+          { path: 'commissions', element: <AdminCommissionListPage /> },
+          { path: 'commissions/:id', element: <AdminCommissionDetailPage /> },
+          { path: 'integrations', element: <AdminIntegrationSettingsPage /> },
+          { path: 'reports', element: <AdminReportsPage /> },
+          { path: 'sales', element: <AdminSalesPage /> },
+          { path: 'settings', element: <AdminSettingsPage /> },
         ],
       },
     ],
@@ -108,6 +129,9 @@ const router = createBrowserRouter([
           { path: 'training/:trainingId/lessons/:lessonId', element: <FreelancerLessonPage /> },
           { path: 'leads', element: <FreelancerLeadListPage /> },
           { path: 'leads/:id', element: <FreelancerLeadDetailPage /> },
+          { path: 'commissions', element: <FreelancerEarningsPage /> },
+          { path: 'commissions/:id', element: <FreelancerCommissionDetailPage /> },
+          { path: 'notifications', element: <FreelancerNotificationsPage /> },
         ],
       },
       {

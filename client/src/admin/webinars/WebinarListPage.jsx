@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
-import { Button, Badge, Modal, ErrorState } from '../../components/ui'
+import { Button, Badge, Modal, ErrorState, PageHeader } from '../../components/ui'
 import { Input, Select, Textarea } from '../../components/forms'
 import { listWebinars, createWebinar } from '../../services/adminWebinarService'
 
@@ -119,13 +119,11 @@ export default function WebinarListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Webinars</h2>
-          <p className="text-sm text-text-secondary">Manage webinars, registrations, and attendance.</p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)}>Create Webinar</Button>
-      </div>
+      <PageHeader
+        title="Webinars"
+        description="Manage webinars, registrations, and attendance."
+        actions={<Button onClick={() => setIsCreateOpen(true)}>Create Webinar</Button>}
+      />
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search by title" />
         <Select

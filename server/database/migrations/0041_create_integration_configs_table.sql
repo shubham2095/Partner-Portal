@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS integration_configs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  provider ENUM(
+    'META_LEAD_ADS','GOOGLE_LEAD_FORMS','WHATSAPP','SMS','RAZORPAY','STRIPE','S3','AUTO_ASSIGNMENT'
+  ) NOT NULL,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  config_json JSON NULL,
+  updated_by INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_integration_configs_provider (provider),
+  CONSTRAINT fk_integration_configs_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

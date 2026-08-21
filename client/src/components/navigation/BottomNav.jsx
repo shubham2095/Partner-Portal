@@ -15,7 +15,7 @@ export default function BottomNav({ items = [] }) {
             )
           }
         >
-          {item.icon}
+          {item.icon && <item.icon className="h-5 w-5" strokeWidth={2} />}
           {item.label}
         </NavLink>
       ))}

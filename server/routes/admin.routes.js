@@ -46,6 +46,12 @@ router.post(
   validateRequest,
   adminFreelancerController.suspendFreelancerAccount
 )
+router.get(
+  '/documents/:documentId/download',
+  documentIdParamValidator,
+  validateRequest,
+  adminFreelancerController.downloadFreelancerDocument
+)
 router.post(
   '/documents/:documentId/verify',
   documentIdParamValidator,

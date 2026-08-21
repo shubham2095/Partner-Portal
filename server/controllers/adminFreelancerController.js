@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendSuccess } from '../utils/apiResponse.js'
 import * as adminFreelancerService from '../services/adminFreelancerService.js'
@@ -40,6 +41,12 @@ export const activateFreelancerAccount = asyncHandler(async (req, res) => {
 export const suspendFreelancerAccount = asyncHandler(async (req, res) => {
   await adminFreelancerService.suspendFreelancerAccount(Number(req.params.id), req.user.id, req)
   sendSuccess(res, { message: 'Freelancer account suspended' })
+})
+
+export const downloadFreelancerDocument = asyncHandler(async (req, res) => {
+  const document = await adminFreelancerService.getDocumentForDownload(Number(req.params.documentId))
+  const absolutePath = path.join(process.cwd(), document.file_path)
+  res.download(absolutePath, document.original_filename ?? `document-${document.id}`)
 })
 
 export const verifyFreelancerDocument = asyncHandler(async (req, res) => {

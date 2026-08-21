@@ -15,6 +15,20 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ])
 
+// Client-supplied MIME type (multipart Content-Type) is attacker-controlled,
+// so it is cross-checked against the file extension rather than trusted
+// alone — both must agree with an allowed type before the file is accepted.
+const ALLOWED_EXTENSIONS_BY_MIME = {
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+  'image/webp': ['.webp'],
+  'application/pdf': ['.pdf'],
+  'application/vnd.ms-powerpoint': ['.ppt'],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+  'application/msword': ['.doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+}
+
 function buildStorage(subFolder) {
   const destination = path.join(process.cwd(), env.upload.dir, subFolder)
 
@@ -35,6 +49,13 @@ function fileFilter(req, file, cb) {
   if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
     return cb(new ApiError(422, `File type ${file.mimetype} is not allowed`))
   }
+
+  const ext = path.extname(file.originalname).toLowerCase()
+  const allowedExtensions = ALLOWED_EXTENSIONS_BY_MIME[file.mimetype] ?? []
+  if (!allowedExtensions.includes(ext)) {
+    return cb(new ApiError(422, 'File extension does not match its content type'))
+  }
+
   cb(null, true)
 }
 

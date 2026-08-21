@@ -16,6 +16,13 @@ import adminTrainingRoutes from './adminTraining.routes.js'
 import freelancerTrainingRoutes from './freelancerTraining.routes.js'
 import adminLeadRoutes from './adminLead.routes.js'
 import freelancerLeadRoutes from './freelancerLead.routes.js'
+import adminCommissionRoutes from './adminCommission.routes.js'
+import freelancerCommissionRoutes from './freelancerCommission.routes.js'
+import notificationRoutes from './notification.routes.js'
+import adminIntegrationRoutes from './adminIntegration.routes.js'
+import webhookRoutes from './webhook.routes.js'
+import adminAnalyticsRoutes from './adminAnalytics.routes.js'
+import freelancerAnalyticsRoutes from './freelancerAnalytics.routes.js'
 
 const router = Router()
 
@@ -35,6 +42,13 @@ router.use('/admin/training', adminTrainingRoutes)
 router.use('/freelancer/training', freelancerTrainingRoutes)
 router.use('/admin/leads', adminLeadRoutes)
 router.use('/freelancer/leads', freelancerLeadRoutes)
+router.use('/admin/commissions', adminCommissionRoutes)
+router.use('/freelancer/commissions', freelancerCommissionRoutes)
+router.use('/notifications', notificationRoutes)
+router.use('/admin/integrations', adminIntegrationRoutes)
+router.use('/webhooks', webhookRoutes)
+router.use('/admin/analytics', adminAnalyticsRoutes)
+router.use('/freelancer/analytics', freelancerAnalyticsRoutes)
 router.use('/verify', verifyRoutes)
 
 export default router

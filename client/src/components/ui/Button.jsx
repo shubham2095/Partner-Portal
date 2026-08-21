@@ -1,9 +1,9 @@
 import { cn } from '../../utils/cn'
 
 const VARIANTS = {
-  primary: 'bg-primary text-white hover:bg-primary-hover',
-  secondary: 'bg-secondary-50 text-text-primary hover:bg-surface-muted border border-border',
-  danger: 'bg-danger text-white hover:bg-danger/90',
+  primary: 'bg-primary text-white hover:bg-primary-hover active:bg-primary-700 shadow-sm',
+  secondary: 'bg-surface text-text-primary hover:bg-surface-muted border border-border',
+  danger: 'bg-danger text-white hover:bg-danger/90 shadow-sm',
   ghost: 'bg-transparent text-text-primary hover:bg-surface-muted',
 }
 
@@ -28,7 +28,7 @@ export default function Button({
       type={type}
       disabled={disabled || isLoading}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded font-medium transition-colors focus-ring disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors duration-150 focus-ring disabled:cursor-not-allowed disabled:opacity-60',
         VARIANTS[variant],
         SIZES[size],
         className

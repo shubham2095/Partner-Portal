@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
-import { Button, Badge, Modal, ErrorState } from '../../components/ui'
+import { Button, Badge, Modal, ErrorState, PageHeader } from '../../components/ui'
 import { Input, Select, Textarea } from '../../components/forms'
 import {
   listQuestions,
@@ -235,13 +235,11 @@ export default function QuestionListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Question Bank</h2>
-          <p className="text-sm text-text-secondary">Manage MCQ questions used across qualification tests.</p>
-        </div>
-        <Button onClick={() => setFormTarget(null)}>Create Question</Button>
-      </div>
+      <PageHeader
+        title="Question Bank"
+        description="Manage MCQ questions used across qualification tests."
+        actions={<Button onClick={() => setFormTarget(null)}>Create Question</Button>}
+      />
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search question text" />
         <Select

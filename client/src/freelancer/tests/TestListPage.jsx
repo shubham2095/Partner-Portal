@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Table, Pagination } from '../../components/data-display'
-import { Badge, Card, ErrorState } from '../../components/ui'
+import { Badge, Card, ErrorState, PageHeader } from '../../components/ui'
 import { listAvailableTests, listMyAttempts } from '../../services/freelancerTestService'
 
 const STATUS_VARIANTS = {
@@ -107,10 +107,7 @@ export default function TestListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">Qualification Tests</h2>
-        <p className="text-sm text-text-secondary">Take available qualification tests to earn certification.</p>
-      </div>
+      <PageHeader title="Qualification Tests" description="Take available qualification tests to earn certification." />
       <Table columns={columns} data={tests} isLoading={isLoading} emptyMessage="No tests available right now." />
       <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
 

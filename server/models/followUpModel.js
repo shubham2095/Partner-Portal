@@ -17,6 +17,29 @@ export async function findFollowUpById(id, executor = pool) {
   return rows[0] ?? null
 }
 
+export async function findFollowUpsDueForReminder(windowMinutes, executor = pool) {
+  const [rows] = await executor.query(
+    `SELECT fu.*, l.assigned_freelancer_id, l.client_name AS lead_client_name, l.lead_number, fp.user_id
+     FROM follow_ups fu
+     INNER JOIN leads l ON l.id = fu.lead_id
+     LEFT JOIN freelancer_profiles fp ON fp.id = l.assigned_freelancer_id
+     WHERE fu.status = 'PENDING'
+       AND fu.reminder_sent_at IS NULL
+       AND fu.scheduled_at <= DATE_ADD(NOW(), INTERVAL ? MINUTE)
+       AND l.assigned_freelancer_id IS NOT NULL`,
+    [windowMinutes]
+  )
+  return rows
+}
+
+export async function markReminderSent(id, executor = pool) {
+  const [result] = await executor.query(
+    "UPDATE follow_ups SET reminder_sent_at = NOW() WHERE id = ? AND reminder_sent_at IS NULL",
+    [id]
+  )
+  return result.affectedRows > 0
+}
+
 export async function findFollowUpWithLead(id, executor = pool) {
   const [rows] = await executor.query(
     `SELECT fu.*, l.assigned_freelancer_id, l.client_name AS lead_client_name

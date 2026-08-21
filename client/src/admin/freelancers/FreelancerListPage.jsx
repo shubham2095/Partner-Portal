@@ -4,6 +4,8 @@ import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-d
 import Select from '../../components/forms/Select'
 import Badge from '../../components/ui/Badge'
 import ErrorState from '../../components/ui/ErrorState'
+import PageHeader from '../../components/ui/PageHeader'
+import Avatar from '../../components/ui/Avatar'
 import { listFreelancers } from '../../services/adminFreelancerService'
 
 const STATUS_OPTIONS = [
@@ -74,11 +76,22 @@ export default function FreelancerListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, statusFilter])
 
-  if (hasError) return <ErrorState onRetry={loadFreelancers} />
+  if (hasError) return <ErrorState title="Unable to load freelancers" onRetry={loadFreelancers} />
 
   const columns = [
-    { key: 'partner_id', header: 'Partner ID', render: (row) => row.partner_id ?? '—' },
-    { key: 'full_name', header: 'Name' },
+    {
+      key: 'full_name',
+      header: 'Freelancer',
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <Avatar name={row.full_name} size={28} />
+          <div>
+            <p className="font-medium text-text-primary">{row.full_name}</p>
+            <p className="text-xs text-text-muted">{row.partner_id ?? 'Pending ID'}</p>
+          </div>
+        </div>
+      ),
+    },
     { key: 'email', header: 'Email' },
     { key: 'mobile', header: 'Mobile' },
     {
@@ -106,10 +119,7 @@ export default function FreelancerListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">Freelancers</h2>
-        <p className="text-sm text-text-secondary">Review, verify, and manage freelancer accounts.</p>
-      </div>
+      <PageHeader title="Freelancers" description="Review, verify, and manage freelancer accounts." />
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search by name, email, or partner ID" />
         <Select id="statusFilter" options={STATUS_OPTIONS} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} />

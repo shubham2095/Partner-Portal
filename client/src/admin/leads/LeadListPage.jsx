@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
-import { Button, Badge, Modal, ErrorState } from '../../components/ui'
+import { Button, Badge, Modal, ErrorState, PageHeader } from '../../components/ui'
 import { Input, Select, Textarea } from '../../components/forms'
 import { listLeads, createLead } from '../../services/adminLeadService'
 import { LEAD_STATUSES, STATUS_VARIANTS } from '../../utils/leadConstants'
@@ -104,13 +104,11 @@ export default function LeadListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Leads</h2>
-          <p className="text-sm text-text-secondary">Manage leads, assignment and the sales pipeline.</p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)}>Create Lead</Button>
-      </div>
+      <PageHeader
+        title="Leads"
+        description="Manage leads, assignment and the sales pipeline."
+        actions={<Button onClick={() => setIsCreateOpen(true)}>Create Lead</Button>}
+      />
 
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search name, mobile, email, lead number" />

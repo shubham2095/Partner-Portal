@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Table } from '../../components/data-display'
-import { Badge, ErrorState } from '../../components/ui'
+import { Badge, ErrorState, PageHeader } from '../../components/ui'
 import { listMyCertificates } from '../../services/freelancerCertificateService'
 
 const STATUS_VARIANTS = { ACTIVE: 'success', REVOKED: 'danger' }
@@ -56,10 +56,7 @@ export default function CertificateListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">My Certificates</h2>
-        <p className="text-sm text-text-secondary">Certificates you've earned by passing qualification tests.</p>
-      </div>
+      <PageHeader title="My Certificates" description="Certificates you've earned by passing qualification tests." />
       <Table columns={columns} data={certificates} isLoading={isLoading} emptyMessage="You haven't earned any certificates yet." />
     </div>
   )

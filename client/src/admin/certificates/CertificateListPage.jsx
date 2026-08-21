@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
-import { Badge, ErrorState } from '../../components/ui'
+import { Badge, ErrorState, PageHeader } from '../../components/ui'
 import { Select } from '../../components/forms'
 import { listCertificates } from '../../services/adminCertificateService'
 
@@ -87,10 +87,7 @@ export default function CertificateListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">Certificates</h2>
-        <p className="text-sm text-text-secondary">View, regenerate, and revoke issued certificates.</p>
-      </div>
+      <PageHeader title="Certificates" description="View, regenerate, and revoke issued certificates." />
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search by certificate #, name, or partner ID" />
         <Select

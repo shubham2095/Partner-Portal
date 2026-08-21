@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
-import { Badge, Card, ErrorState } from '../../components/ui'
+import { Badge, Card, ErrorState, PageHeader } from '../../components/ui'
 import { Select } from '../../components/forms'
 import { listAvailableWebinars, listMyRegistrations } from '../../services/freelancerWebinarService'
 
@@ -132,10 +132,7 @@ export default function WebinarListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">Webinars</h2>
-        <p className="text-sm text-text-secondary">Browse and register for upcoming webinars.</p>
-      </div>
+      <PageHeader title="Webinars" description="Browse and register for upcoming webinars." />
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search by title" />
         <Select

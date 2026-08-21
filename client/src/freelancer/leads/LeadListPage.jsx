@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
-import { Badge, ErrorState } from '../../components/ui'
+import { Badge, ErrorState, PageHeader } from '../../components/ui'
 import { Select } from '../../components/forms'
 import { listMyLeads } from '../../services/freelancerLeadService'
 import { LEAD_STATUSES, STATUS_VARIANTS } from '../../utils/leadConstants'
@@ -83,10 +83,7 @@ export default function LeadListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">My Leads</h2>
-        <p className="text-sm text-text-secondary">Leads assigned to you.</p>
-      </div>
+      <PageHeader title="My Leads" description="Leads assigned to you." />
 
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search name, mobile, email" />

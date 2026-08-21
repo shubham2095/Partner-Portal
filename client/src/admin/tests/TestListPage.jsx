@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
-import { Button, Badge, Modal, ErrorState } from '../../components/ui'
+import { Button, Badge, Modal, ErrorState, PageHeader } from '../../components/ui'
 import { Input, Select, Textarea, Checkbox } from '../../components/forms'
 import { listTests, createTest } from '../../services/adminTestService'
 import { listWebinars } from '../../services/adminWebinarService'
@@ -160,13 +160,11 @@ export default function TestListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Qualification Tests</h2>
-          <p className="text-sm text-text-secondary">Manage tests, attached questions, and attempts.</p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)}>Create Test</Button>
-      </div>
+      <PageHeader
+        title="Qualification Tests"
+        description="Manage tests, attached questions, and attempts."
+        actions={<Button onClick={() => setIsCreateOpen(true)}>Create Test</Button>}
+      />
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search by title" />
         <Select

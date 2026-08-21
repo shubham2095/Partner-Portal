@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
+import { PageLoader } from '../components/ui'
 
 export default function PublicLayout() {
   return (
@@ -7,7 +9,9 @@ export default function PublicLayout() {
         <span className="text-lg font-semibold text-text-primary">Partner Portal</span>
       </header>
       <main className="flex-1">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )

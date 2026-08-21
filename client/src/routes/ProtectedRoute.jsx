@@ -1,5 +1,7 @@
+import { Suspense } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { PageLoader } from '../components/ui'
 
 const ROLE_HOME = {
   FREELANCER: '/freelancer/dashboard',
@@ -20,5 +22,9 @@ export default function ProtectedRoute({ allowedRoles }) {
     return <Navigate to={ROLE_HOME[role] ?? '/'} replace />
   }
 
-  return <Outlet />
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Outlet />
+    </Suspense>
+  )
 }

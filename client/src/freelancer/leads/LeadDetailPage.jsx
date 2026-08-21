@@ -2,9 +2,19 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
+import { ArrowLeft, CalendarClock } from 'lucide-react'
 import { Button, Badge, Modal, Card, LoadingState, ErrorState } from '../../components/ui'
 import { Input, Select, Textarea } from '../../components/forms'
 import { LEAD_STATUSES, STATUS_VARIANTS } from '../../utils/leadConstants'
+
+function followUpUrgency(scheduledAt) {
+  const due = new Date(scheduledAt)
+  const now = new Date()
+  const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  if (due < now) return 'overdue'
+  if (due < startOfTomorrow) return 'today'
+  return 'upcoming'
+}
 import {
   getMyLeadDetail,
   changeMyLeadStatus,
@@ -122,28 +132,48 @@ export default function LeadDetailPage() {
   }
 
   if (status === 'loading') return <LoadingState label="Loading lead..." />
-  if (status === 'error') return <ErrorState onRetry={loadAll} />
+  if (status === 'error') return <ErrorState title="Unable to load this lead" onRetry={loadAll} />
 
   const isClosed = TERMINAL_STATUSES.has(lead.status)
+  const pendingFollowUps = followUps.filter((fu) => fu.status === 'PENDING')
+  const nextFollowUp = pendingFollowUps.slice().sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))[0]
 
   return (
     <div className="flex flex-col gap-6">
       <Button variant="ghost" size="sm" onClick={() => navigate('/freelancer/leads')} className="w-fit">
-        ← Back to My Leads
+        <ArrowLeft className="h-4 w-4" strokeWidth={2} /> Back to My Leads
       </Button>
 
       <Card className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-semibold text-text-primary">
-              {lead.client_name} {lead.company && <span className="text-text-secondary">({lead.company})</span>}
-            </h2>
+            <h1 className="text-lg font-bold text-text-primary sm:text-xl">
+              {lead.client_name} {lead.company && <span className="font-normal text-text-secondary">({lead.company})</span>}
+            </h1>
             <p className="text-sm text-text-secondary">
               {lead.lead_number} · {lead.mobile} {lead.email && `· ${lead.email}`}
             </p>
           </div>
           <Badge variant={STATUS_VARIANTS[lead.status] ?? 'default'}>{lead.status.replace(/_/g, ' ')}</Badge>
         </div>
+
+        {nextFollowUp && (
+          <div
+            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${
+              followUpUrgency(nextFollowUp.scheduled_at) === 'overdue'
+                ? 'bg-danger-bg text-danger'
+                : followUpUrgency(nextFollowUp.scheduled_at) === 'today'
+                  ? 'bg-warning-bg text-warning'
+                  : 'bg-info-bg text-info'
+            }`}
+          >
+            <CalendarClock className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <span className="font-medium">
+              Next action: {nextFollowUp.follow_up_type.replace(/_/g, ' ')} —{' '}
+              {new Date(nextFollowUp.scheduled_at).toLocaleString()}
+            </span>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2 text-sm text-text-secondary sm:grid-cols-4">
           <span>Location: {lead.location ?? '—'}</span>
@@ -195,11 +225,20 @@ export default function LeadDetailPage() {
           )}
         </div>
         {followUps.length === 0 && <p className="text-sm text-text-secondary">No follow-ups yet.</p>}
-        {followUps.map((fu) => (
-          <div key={fu.id} className="flex items-center justify-between rounded border border-border p-3 text-sm">
+        {followUps.map((fu) => {
+          const urgency = fu.status === 'PENDING' ? followUpUrgency(fu.scheduled_at) : null
+          return (
+          <div
+            key={fu.id}
+            className={`flex items-center justify-between rounded-md border p-3 text-sm ${
+              urgency === 'overdue' ? 'border-danger/30 bg-danger-bg' : 'border-border'
+            }`}
+          >
             <div>
               <p className="font-medium text-text-primary">
                 {fu.follow_up_type.replace(/_/g, ' ')} — {new Date(fu.scheduled_at).toLocaleString()}
+                {urgency === 'overdue' && <span className="ml-2 text-xs font-semibold text-danger">OVERDUE</span>}
+                {urgency === 'today' && <span className="ml-2 text-xs font-semibold text-warning">TODAY</span>}
               </p>
               {fu.notes && <p className="text-text-secondary">{fu.notes}</p>}
               {fu.outcome && <p className="text-text-secondary">Outcome: {fu.outcome}</p>}
@@ -220,7 +259,8 @@ export default function LeadDetailPage() {
               )}
             </div>
           </div>
-        ))}
+          )
+        })}
       </Card>
 
       <Card className="flex flex-col gap-3">

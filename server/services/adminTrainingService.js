@@ -14,7 +14,10 @@ import {
   updateTrainingStatus,
   recomputeTrainingTotals,
   listTrainingsAdmin,
+  ACCESS_LEVEL_RANK,
 } from '../models/trainingModel.js'
+import { pool } from '../config/database.js'
+import { notify } from './notificationService.js'
 import {
   createModule as createModuleModel,
   findModuleById,
@@ -139,7 +142,42 @@ export async function changeTrainingStatus(id, status, adminId, req) {
   }
   await updateTrainingStatus(id, status)
   await logAudit({ actorId: adminId, action: 'TRAINING_STATUS_CHANGED', entity: 'training', entityId: id, oldValue: { status: training.status }, newValue: { status }, req })
+
+  if (status === 'PUBLISHED') {
+    notifyEligibleFreelancers(id, training.title, training.access_level).catch((error) =>
+      console.error('[adminTrainingService] Failed to notify freelancers of published training:', error.message)
+    )
+  }
+
   return findTrainingById(id)
+}
+
+const STATUS_ACCESS_RANK = { PENDING: 0, VERIFIED: 1, QUALIFIED: 2, CERTIFIED: 3, ACTIVE: 4 }
+
+async function notifyEligibleFreelancers(trainingId, trainingTitle, accessLevel) {
+  const minRank = ACCESS_LEVEL_RANK[accessLevel] ?? 0
+  const eligibleStatuses = Object.entries(STATUS_ACCESS_RANK)
+    .filter(([, rank]) => rank >= minRank)
+    .map(([statusName]) => statusName)
+  if (eligibleStatuses.length === 0) return
+
+  const [rows] = await pool.query(
+    `SELECT user_id FROM freelancer_profiles WHERE status IN (${eligibleStatuses.map(() => '?').join(',')})`,
+    eligibleStatuses
+  )
+
+  await Promise.all(
+    rows.map((row) =>
+      notify({
+        recipientUserId: row.user_id,
+        type: 'TRAINING_PUBLISHED',
+        title: 'New training available',
+        message: `${trainingTitle} is now available for you.`,
+        relatedEntityType: 'training',
+        relatedEntityId: trainingId,
+      }).catch((error) => console.error('[adminTrainingService] Notify failed for user', row.user_id, error.message))
+    )
+  )
 }
 
 // ---- Modules ----

@@ -17,6 +17,7 @@ import { findProfileById } from '../models/freelancerProfileModel.js'
 import { generateLeadNumber } from './leadNumberService.js'
 import { assertValidStatusTransition, activityTypeForStatus } from './leadStatusService.js'
 import { logAudit } from './auditService.js'
+import { notify, notifyAdmins } from './notificationService.js'
 
 const ACTIVITY_TYPES = [
   'PHONE_CALL',
@@ -119,6 +120,18 @@ export async function changeLeadStatus(id, { status, conversionValue }, adminId,
     req,
   })
 
+  if (status === 'CONVERTED') {
+    // Best-effort: a notification failure must never fail the underlying
+    // status change that already committed.
+    notifyAdmins({
+      type: 'LEAD_CONVERTED',
+      title: 'Lead converted',
+      message: `Lead #${id} was marked converted${conversionValue ? ` (₹${conversionValue})` : ''}.`,
+      relatedEntityType: 'lead',
+      relatedEntityId: id,
+    }).catch((error) => console.error('[adminLeadService] Failed to notify admins of conversion:', error.message))
+  }
+
   return findLeadDetailById(id)
 }
 
@@ -178,6 +191,21 @@ export async function assignLead(id, freelancerId, note, adminId, req) {
     newValue: { freelancerId: freelancerId ?? null },
     req,
   })
+
+  if (freelancerId) {
+    const profile = await findProfileById(freelancerId)
+    const lead = await findLeadById(id)
+    notify({
+      recipientUserId: profile.user_id,
+      type: 'LEAD_ASSIGNED',
+      title: 'New lead assigned to you',
+      message: `${lead.client_name} (${lead.lead_number}) has been assigned to you.`,
+      relatedEntityType: 'lead',
+      relatedEntityId: id,
+      emailSubject: 'New lead assigned to you',
+      emailHtml: `<p>A lead <strong>${lead.client_name}</strong> (${lead.lead_number}) has been assigned to you.</p>`,
+    }).catch((error) => console.error('[adminLeadService] Failed to notify freelancer of assignment:', error.message))
+  }
 
   return findLeadDetailById(id)
 }
