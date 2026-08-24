@@ -30,3 +30,11 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+architecture.md
+design.md
+hostinger_deployment.md
+memory.md
+phases.md
+prd.md
+rules.md
