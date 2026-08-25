@@ -10,6 +10,11 @@ export async function getMyCommissionDetail(id) {
   return data.data
 }
 
+export async function downloadMyContract(id) {
+  const { data } = await apiClient.get(`/freelancer/commissions/${id}/contract`, { responseType: 'blob' })
+  return data
+}
+
 export async function getMyEarningsSummary() {
   const { data } = await apiClient.get('/freelancer/commissions/summary')
   return data.data

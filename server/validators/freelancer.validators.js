@@ -26,6 +26,12 @@ export const updateProfessionalDetailsValidator = [
   body('specializations').optional().trim(),
   body('preferredWorkingAreas').optional().trim(),
   body('previousAgencyExperience').optional().trim(),
+  body('bio').optional().trim().isLength({ max: 2000 }).withMessage('Bio must be 2000 characters or fewer'),
+  body('preferredCommunication')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Preferred communication must be 100 characters or fewer'),
 ]
 
 export const uploadDocumentValidator = [

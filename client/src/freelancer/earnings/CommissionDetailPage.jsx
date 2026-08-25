@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Check } from 'lucide-react'
 import { Button, Badge, Card, LoadingState, ErrorState } from '../../components/ui'
 import { cn } from '../../utils/cn'
-import { getMyCommissionDetail } from '../../services/freelancerCommissionService'
+import { getMyCommissionDetail, downloadMyContract } from '../../services/freelancerCommissionService'
 
 const LIFECYCLE = ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID']
 
@@ -73,6 +73,22 @@ export default function CommissionDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  const handleDownloadContract = async () => {
+    try {
+      const blob = await downloadMyContract(id)
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `contract-${id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    }
+  }
+
   if (status === 'loading') return <LoadingState label="Loading commission..." />
   if (status === 'error') return <ErrorState title="Unable to load this commission" onRetry={loadDetail} />
 
@@ -126,6 +142,12 @@ export default function CommissionDetailPage() {
             </p>
           </div>
         </div>
+
+        {commission.contract_document_path && (
+          <Button size="sm" variant="secondary" className="w-fit" onClick={handleDownloadContract}>
+            Download Contract
+          </Button>
+        )}
       </Card>
 
       {payment && (

@@ -13,6 +13,8 @@ const PROFESSIONAL_FIELDS = [
   'specializations',
   'preferred_working_areas',
   'previous_agency_experience',
+  'bio',
+  'preferred_communication',
 ]
 
 export async function createFreelancerProfile({ userId, fullName, mobile }, executor = pool) {

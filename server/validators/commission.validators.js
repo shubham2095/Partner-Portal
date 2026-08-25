@@ -2,8 +2,16 @@ import { param, query, body } from 'express-validator'
 
 const RATE_TYPES = ['PERCENTAGE', 'FIXED']
 const RULE_STATUSES = ['ACTIVE', 'INACTIVE']
-const COMMISSION_STATUSES = ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID']
+const COMMISSION_STATUSES = ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID', 'REJECTED']
 const PARTNER_LEVELS = ['STARTER', 'CERTIFIED_PARTNER', 'PREMIUM_PARTNER', 'ELITE_PARTNER']
+const ACCOUNT_TYPES = ['SAVINGS', 'CURRENT']
+
+// Standard Indian banking formats — not invented, these are the fixed
+// government/NPCI-defined formats (IFSC: RBI, PAN: Income Tax Dept, UPI: NPCI).
+const IFSC_PATTERN = /^[A-Z]{4}0[A-Z0-9]{6}$/
+const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/
+const UPI_PATTERN = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/
+const ACCOUNT_NUMBER_PATTERN = /^[0-9]{9,18}$/
 
 export const commissionIdParamValidator = [param('id').isInt({ min: 1 }).withMessage('Invalid commission id')]
 export const ruleIdParamValidator = [param('id').isInt({ min: 1 }).withMessage('Invalid commission rule id')]
@@ -48,6 +56,27 @@ export const changeCommissionStatusValidator = [
   body('status').isIn(COMMISSION_STATUSES).withMessage('Invalid commission status'),
 ]
 
+export const rejectCommissionValidator = [
+  body('reason').trim().notEmpty().withMessage('A rejection reason is required').isLength({ max: 500 }),
+]
+
+// Closed deal submission
+
+export const submitClosedDealValidator = [
+  body('declarationNote').optional({ values: 'falsy' }).trim().isLength({ max: 1000 }),
+  body('dealClosingDate').optional({ values: 'falsy' }).isISO8601().withMessage('Enter a valid deal closing date'),
+  // multipart bodies deliver this as the string "true"/"false" — a strict
+  // boolean check would reject every real request, so both forms are accepted.
+  body('termsAccepted')
+    .custom((value) => value === true || value === 'true')
+    .withMessage('You must accept the terms & conditions to submit a closed deal'),
+]
+
+// Admin: confirm client payment received (see Phase 4 — this is a distinct,
+// explicit gate before a commission can be approved, never inferred from
+// the lead's CONVERTED status).
+export const confirmClientPaymentValidator = []
+
 // Payments
 
 export const listPaymentsValidator = [
@@ -64,12 +93,36 @@ export const createPaymentValidator = [
 // Freelancer payment details
 
 export const updatePaymentDetailsValidator = [
-  body('accountHolderName').optional({ values: 'null' }).trim().isLength({ max: 150 }),
-  body('bankAccountNumber').optional({ values: 'null' }).trim().isLength({ max: 50 }),
-  body('ifscCode').optional({ values: 'null' }).trim().isLength({ max: 20 }),
-  body('upiId').optional({ values: 'null' }).trim().isLength({ max: 100 }),
-  body('panNumber').optional({ values: 'null' }).trim().isLength({ max: 20 }),
-  body('gstNumber').optional({ values: 'null' }).trim().isLength({ max: 30 }),
+  body('accountHolderName')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ min: 2, max: 150 })
+    .withMessage('Account holder name must be 2-150 characters'),
+  body('bankName').optional({ values: 'falsy' }).trim().isLength({ min: 2, max: 150 }).withMessage('Bank name must be 2-150 characters'),
+  body('accountType').optional({ values: 'falsy' }).isIn(ACCOUNT_TYPES).withMessage('Account type must be SAVINGS or CURRENT'),
+  body('bankAccountNumber')
+    .optional({ values: 'falsy' })
+    .trim()
+    .matches(ACCOUNT_NUMBER_PATTERN)
+    .withMessage('Account number must be 9-18 digits'),
+  body('ifscCode')
+    .optional({ values: 'falsy' })
+    .trim()
+    .toUpperCase()
+    .matches(IFSC_PATTERN)
+    .withMessage('Enter a valid IFSC code (e.g. HDFC0001234)'),
+  body('upiId')
+    .optional({ values: 'falsy' })
+    .trim()
+    .matches(UPI_PATTERN)
+    .withMessage('Enter a valid UPI ID (e.g. name@bank)'),
+  body('panNumber')
+    .optional({ values: 'falsy' })
+    .trim()
+    .toUpperCase()
+    .matches(PAN_PATTERN)
+    .withMessage('Enter a valid PAN (e.g. ABCDE1234F)'),
+  body('gstNumber').optional({ values: 'falsy' }).trim().isLength({ max: 30 }),
 ]
 
 // Partner level

@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
-import { Home, Video, ClipboardCheck, Award, Target, GraduationCap, Wallet, Bell, User } from 'lucide-react'
+import { Home, Video, ClipboardCheck, Award, Target, GraduationCap, Wallet, Bell, User, CalendarClock, LifeBuoy } from 'lucide-react'
 import { BottomNav, Sidebar, Topbar } from '../components/navigation'
 import { PageLoader } from '../components/ui'
 
@@ -10,8 +10,10 @@ const NAV_ITEMS = [
   { to: '/freelancer/tests', label: 'Tests', icon: ClipboardCheck },
   { to: '/freelancer/certificates', label: 'Certificates', icon: Award },
   { to: '/freelancer/leads', label: 'Leads', icon: Target },
+  { to: '/freelancer/follow-ups', label: 'Follow-ups', icon: CalendarClock },
   { to: '/freelancer/training', label: 'Learn', icon: GraduationCap },
   { to: '/freelancer/commissions', label: 'Earnings', icon: Wallet },
+  { to: '/freelancer/tickets', label: 'Support', icon: LifeBuoy },
   { to: '/freelancer/notifications', label: 'Notifications', icon: Bell },
   { to: '/freelancer/profile', label: 'Profile', icon: User },
 ]

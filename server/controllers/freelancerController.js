@@ -17,6 +17,8 @@ const FIELD_MAP = {
   specializations: 'specializations',
   preferredWorkingAreas: 'preferred_working_areas',
   previousAgencyExperience: 'previous_agency_experience',
+  bio: 'bio',
+  preferredCommunication: 'preferred_communication',
 }
 
 function mapProfileFields(body) {

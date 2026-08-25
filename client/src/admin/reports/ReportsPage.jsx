@@ -4,6 +4,7 @@ import { Table, Pagination, FilterBar } from '../../components/data-display'
 import { Button, ErrorState, PageHeader } from '../../components/ui'
 import { Select, DatePicker } from '../../components/forms'
 import { getReport, exportReport } from '../../services/adminAnalyticsService'
+import { listFreelancers } from '../../services/adminFreelancerService'
 
 const LIMIT = 20
 
@@ -12,6 +13,7 @@ const REPORT_TYPES = [
     value: 'lead',
     label: 'Leads',
     supportsDateRange: true,
+    supportsFreelancerFilter: true,
     columns: [
       { key: 'lead_number', header: 'Lead #' },
       { key: 'client_name', header: 'Client' },
@@ -25,8 +27,9 @@ const REPORT_TYPES = [
   },
   {
     value: 'sales',
-    label: 'Sales',
+    label: 'Sales (Closed Deals)',
     supportsDateRange: true,
+    supportsFreelancerFilter: true,
     columns: [
       { key: 'lead_number', header: 'Lead #' },
       { key: 'client_name', header: 'Client' },
@@ -49,6 +52,9 @@ const REPORT_TYPES = [
     value: 'commission',
     label: 'Commissions',
     supportsDateRange: true,
+    supportsFreelancerFilter: true,
+    supportsStatusFilter: true,
+    statusOptions: ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID', 'REJECTED'],
     columns: [
       { key: 'lead_number', header: 'Lead #' },
       { key: 'freelancer_name', header: 'Freelancer' },
@@ -110,6 +116,62 @@ const REPORT_TYPES = [
       { key: 'percentageOfTotal', header: '% of Total', render: (row) => `${row.percentageOfTotal}%` },
     ],
   },
+  {
+    value: 'withdrawal',
+    label: 'Withdrawals',
+    supportsDateRange: true,
+    columns: [
+      { key: 'id', header: 'Request #' },
+      { key: 'freelancer_name', header: 'Freelancer' },
+      { key: 'amount', header: 'Amount', render: (row) => `₹${row.amount}` },
+      { key: 'status', header: 'Status' },
+      { key: 'requested_at', header: 'Requested' },
+      { key: 'paid_at', header: 'Paid At' },
+      { key: 'transaction_reference', header: 'Reference' },
+    ],
+  },
+  {
+    value: 'follow-up',
+    label: 'Follow-up Performance',
+    supportsDateRange: true,
+    columns: [
+      { key: 'lead_number', header: 'Lead #' },
+      { key: 'client_name', header: 'Client' },
+      { key: 'freelancer_name', header: 'Freelancer' },
+      { key: 'follow_up_type', header: 'Type' },
+      { key: 'priority', header: 'Priority' },
+      { key: 'status', header: 'Status' },
+      { key: 'scheduled_at', header: 'Scheduled' },
+      { key: 'outcome', header: 'Outcome' },
+    ],
+  },
+  {
+    value: 'course',
+    label: 'Course Completion',
+    supportsDateRange: false,
+    columns: [
+      { key: 'freelancer_name', header: 'Freelancer' },
+      { key: 'training_title', header: 'Course' },
+      { key: 'status', header: 'Status' },
+      { key: 'progress_percentage', header: 'Progress', render: (row) => `${row.progress_percentage}%` },
+      { key: 'started_at', header: 'Started' },
+      { key: 'completed_at', header: 'Completed' },
+    ],
+  },
+  {
+    value: 'ticket',
+    label: 'Support Tickets',
+    supportsDateRange: true,
+    columns: [
+      { key: 'ticket_number', header: 'Ticket #' },
+      { key: 'freelancer_name', header: 'Freelancer' },
+      { key: 'category', header: 'Category' },
+      { key: 'priority', header: 'Priority' },
+      { key: 'status', header: 'Status' },
+      { key: 'assigned_admin_email', header: 'Assigned Admin' },
+      { key: 'created_at', header: 'Created' },
+    ],
+  },
 ]
 
 export default function ReportsPage() {
@@ -122,19 +184,34 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [freelancerFilter, setFreelancerFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [freelancers, setFreelancers] = useState([])
 
   const activeConfig = REPORT_TYPES.find((r) => r.value === reportType)
+
+  useEffect(() => {
+    listFreelancers({ page: 1, limit: 200 })
+      .then((response) => setFreelancers(response.data.freelancers))
+      .catch(() => {})
+  }, [])
+
+  const buildParams = () => {
+    const params = { page, limit: LIMIT }
+    if (activeConfig.supportsDateRange) {
+      if (dateFrom) params.dateFrom = dateFrom
+      if (dateTo) params.dateTo = dateTo
+    }
+    if (activeConfig.supportsFreelancerFilter && freelancerFilter) params.freelancerId = freelancerFilter
+    if (activeConfig.supportsStatusFilter && statusFilter) params.status = statusFilter
+    return params
+  }
 
   const loadReport = async () => {
     setIsLoading(true)
     setHasError(false)
     try {
-      const params = { page, limit: LIMIT }
-      if (activeConfig.supportsDateRange) {
-        if (dateFrom) params.dateFrom = dateFrom
-        if (dateTo) params.dateTo = dateTo
-      }
-      const response = await getReport(reportType, params)
+      const response = await getReport(reportType, buildParams())
       setRows(response.rows.map((row, index) => ({ ...row, _rowKey: index })))
       setTotal(response.total)
     } catch (error) {
@@ -146,12 +223,12 @@ export default function ReportsPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [reportType, dateFrom, dateTo])
+  }, [reportType, dateFrom, dateTo, freelancerFilter, statusFilter])
 
   useEffect(() => {
     loadReport()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reportType, dateFrom, dateTo, page])
+  }, [reportType, dateFrom, dateTo, freelancerFilter, statusFilter, page])
 
   const onExport = async () => {
     setIsExporting(true)
@@ -161,6 +238,8 @@ export default function ReportsPage() {
         if (dateFrom) params.dateFrom = dateFrom
         if (dateTo) params.dateTo = dateTo
       }
+      if (activeConfig.supportsFreelancerFilter && freelancerFilter) params.freelancerId = freelancerFilter
+      if (activeConfig.supportsStatusFilter && statusFilter) params.status = statusFilter
       const blob = await exportReport(reportType, params)
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -203,6 +282,22 @@ export default function ReportsPage() {
             <DatePicker id="dateFrom" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             <DatePicker id="dateTo" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </>
+        )}
+        {activeConfig.supportsFreelancerFilter && (
+          <Select
+            id="freelancerFilter"
+            options={[{ value: '', label: 'All Freelancers' }, ...freelancers.map((f) => ({ value: String(f.id), label: f.full_name }))]}
+            value={freelancerFilter}
+            onChange={(e) => setFreelancerFilter(e.target.value)}
+          />
+        )}
+        {activeConfig.supportsStatusFilter && (
+          <Select
+            id="statusFilter"
+            options={[{ value: '', label: 'All Statuses' }, ...activeConfig.statusOptions.map((s) => ({ value: s, label: s }))]}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          />
         )}
       </FilterBar>
 

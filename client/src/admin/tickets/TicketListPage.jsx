@@ -1,0 +1,166 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Table, Pagination, SearchBar, FilterBar, StatCard } from '../../components/data-display'
+import { Badge, ErrorState, PageHeader, EmptyState } from '../../components/ui'
+import { Select } from '../../components/forms'
+import { LifeBuoy, UserX, AlertTriangle } from 'lucide-react'
+import { listTickets, getDashboardCounts, listAssignableAdmins } from '../../services/adminTicketService'
+
+const CATEGORIES = ['LEAD_ISSUE', 'COMMISSION_ISSUE', 'PAYMENT_WITHDRAWAL', 'COURSE_TRAINING', 'TECHNICAL_ISSUE', 'PROFILE_ACCOUNT', 'GENERAL_QUERY']
+const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
+const STATUSES = ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_FOR_FREELANCER', 'RESOLVED', 'CLOSED']
+
+const STATUS_VARIANTS = {
+  OPEN: 'info',
+  ASSIGNED: 'info',
+  IN_PROGRESS: 'warning',
+  WAITING_FOR_FREELANCER: 'warning',
+  RESOLVED: 'success',
+  CLOSED: 'default',
+}
+const PRIORITY_VARIANTS = { LOW: 'default', MEDIUM: 'info', HIGH: 'warning', URGENT: 'danger' }
+
+const LIMIT = 20
+
+export default function TicketListPage() {
+  const [tickets, setTickets] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
+  const [adminFilter, setAdminFilter] = useState('')
+  const [admins, setAdmins] = useState([])
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
+  const [counts, setCounts] = useState(null)
+
+  const loadTickets = async () => {
+    setIsLoading(true)
+    setHasError(false)
+    try {
+      const response = await listTickets({
+        status: statusFilter || undefined,
+        category: categoryFilter || undefined,
+        priority: priorityFilter || undefined,
+        assignedAdminId: adminFilter || undefined,
+        search: search || undefined,
+        page,
+        limit: LIMIT,
+      })
+      setTickets(response.data.tickets)
+      setTotal(response.meta.total)
+    } catch (error) {
+      setHasError(true)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loadSidebarData = async () => {
+    try {
+      const [countsData, adminsData] = await Promise.all([getDashboardCounts(), listAssignableAdmins()])
+      setCounts(countsData)
+      setAdmins(adminsData)
+    } catch (error) {
+      // handled by interceptor toast
+    }
+  }
+
+  useEffect(() => {
+    loadSidebarData()
+  }, [])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setSearch(searchInput), 300)
+    return () => clearTimeout(timeout)
+  }, [searchInput])
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter, categoryFilter, priorityFilter, adminFilter, search])
+
+  useEffect(() => {
+    loadTickets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, statusFilter, categoryFilter, priorityFilter, adminFilter, search])
+
+  if (hasError) return <ErrorState title="Unable to load tickets" onRetry={loadTickets} />
+
+  const columns = [
+    {
+      key: 'ticket_number',
+      header: 'Ticket',
+      render: (row) => (
+        <Link to={`/admin/tickets/${row.id}`} className="text-primary hover:underline">
+          {row.ticket_number}
+        </Link>
+      ),
+    },
+    { key: 'freelancer_name', header: 'Freelancer', render: (row) => `${row.freelancer_name} (${row.partner_id ?? '—'})` },
+    { key: 'subject', header: 'Subject' },
+    { key: 'category', header: 'Category', render: (row) => row.category.replace(/_/g, ' ') },
+    {
+      key: 'priority',
+      header: 'Priority',
+      render: (row) => <Badge variant={PRIORITY_VARIANTS[row.priority] ?? 'default'}>{row.priority}</Badge>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => <Badge variant={STATUS_VARIANTS[row.status] ?? 'default'}>{row.status.replace(/_/g, ' ')}</Badge>,
+    },
+    { key: 'assigned_admin_email', header: 'Assigned', render: (row) => row.assigned_admin_email ?? <span className="text-text-secondary">Unassigned</span> },
+    { key: 'updated_at', header: 'Updated', render: (row) => new Date(row.updated_at).toLocaleDateString() },
+  ]
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PageHeader title="Support Tickets" description="Manage freelancer support requests." />
+
+      {counts && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <StatCard label="Unassigned Open" value={counts.unassignedOpen} icon={UserX} accent="warning" />
+          <StatCard label="High/Urgent Open" value={counts.highPriorityOpen} icon={AlertTriangle} accent="danger" />
+        </div>
+      )}
+
+      <FilterBar>
+        <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search subject, ticket number, freelancer" />
+        <Select
+          id="statusFilter"
+          options={[{ value: '', label: 'All Statuses' }, ...STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))]}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        />
+        <Select
+          id="categoryFilter"
+          options={[{ value: '', label: 'All Categories' }, ...CATEGORIES.map((c) => ({ value: c, label: c.replace(/_/g, ' ') }))]}
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+        />
+        <Select
+          id="priorityFilter"
+          options={[{ value: '', label: 'All Priorities' }, ...PRIORITIES.map((p) => ({ value: p, label: p }))]}
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+        />
+        <Select
+          id="adminFilter"
+          options={[{ value: '', label: 'All Admins' }, ...admins.map((a) => ({ value: String(a.id), label: a.email }))]}
+          value={adminFilter}
+          onChange={(e) => setAdminFilter(e.target.value)}
+        />
+      </FilterBar>
+
+      {!isLoading && tickets.length === 0 ? (
+        <EmptyState icon={LifeBuoy} title="No tickets" description="Tickets matching this view will appear here." />
+      ) : (
+        <Table columns={columns} data={tickets} isLoading={isLoading} emptyMessage="No tickets found." rowKey="id" />
+      )}
+      <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
+    </div>
+  )
+}

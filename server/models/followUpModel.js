@@ -1,13 +1,13 @@
 import { pool } from '../config/database.js'
 
 export async function createFollowUp(
-  { leadId, scheduledAt, followUpType, notes, createdBy },
+  { leadId, scheduledAt, followUpType, priority, notes, createdBy },
   executor = pool
 ) {
   const [result] = await executor.query(
-    `INSERT INTO follow_ups (lead_id, scheduled_at, follow_up_type, notes, created_by)
-     VALUES (?, ?, ?, ?, ?)`,
-    [leadId, scheduledAt, followUpType, notes ?? null, createdBy]
+    `INSERT INTO follow_ups (lead_id, scheduled_at, follow_up_type, priority, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [leadId, scheduledAt, followUpType, priority ?? 'MEDIUM', notes ?? null, createdBy]
   )
   return result.insertId
 }
@@ -51,7 +51,7 @@ export async function findFollowUpWithLead(id, executor = pool) {
   return rows[0] ?? null
 }
 
-const FOLLOWUP_FIELDS = ['scheduled_at', 'follow_up_type', 'notes']
+const FOLLOWUP_FIELDS = ['scheduled_at', 'follow_up_type', 'priority', 'notes']
 
 export async function updateFollowUp(id, fields, executor = pool) {
   const entries = Object.entries(fields).filter(([key, value]) => FOLLOWUP_FIELDS.includes(key) && value !== undefined)
@@ -71,7 +71,7 @@ export async function completeFollowUp(id, { outcome, nextFollowUpDate }, execut
 }
 
 export async function cancelFollowUp(id, executor = pool) {
-  await executor.query("UPDATE follow_ups SET status = 'CANCELLED' WHERE id = ?", [id])
+  await executor.query("UPDATE follow_ups SET status = 'CANCELLED', cancelled_at = CURRENT_TIMESTAMP WHERE id = ?", [id])
 }
 
 export async function listFollowUpsByLead(leadId, executor = pool) {
@@ -100,8 +100,26 @@ function applyBucketCondition(bucket, conditions, params) {
   }
 }
 
+// Shared by the admin and freelancer list queries — kept as one function so
+// the two follow-up listing endpoints can't silently drift apart.
+function applyCommonFilters({ followUpType, priority, search }, conditions, params) {
+  if (followUpType) {
+    conditions.push('fu.follow_up_type = ?')
+    params.push(followUpType)
+  }
+  if (priority) {
+    conditions.push('fu.priority = ?')
+    params.push(priority)
+  }
+  if (search) {
+    conditions.push('(l.client_name LIKE ? OR l.lead_number LIKE ?)')
+    const like = `%${search}%`
+    params.push(like, like)
+  }
+}
+
 export async function listFollowUpsAdmin(
-  { bucket, status, assignedFreelancerId, page = 1, limit = 20 },
+  { bucket, status, assignedFreelancerId, followUpType, priority, search, page = 1, limit = 20 },
   executor = pool
 ) {
   const conditions = []
@@ -116,14 +134,16 @@ export async function listFollowUpsAdmin(
     conditions.push('l.assigned_freelancer_id = ?')
     params.push(assignedFreelancerId)
   }
+  applyCommonFilters({ followUpType, priority, search }, conditions, params)
 
   const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
   const offset = (page - 1) * limit
 
   const [rows] = await executor.query(
-    `SELECT fu.*, l.lead_number, l.client_name, l.assigned_freelancer_id
+    `SELECT fu.*, l.lead_number, l.client_name, l.assigned_freelancer_id, fp.full_name AS assigned_freelancer_name
      FROM follow_ups fu
      INNER JOIN leads l ON l.id = fu.lead_id
+     LEFT JOIN freelancer_profiles fp ON fp.id = l.assigned_freelancer_id
      ${whereClause}
      ORDER BY fu.scheduled_at ASC
      LIMIT ? OFFSET ?`,
@@ -138,7 +158,7 @@ export async function listFollowUpsAdmin(
 }
 
 export async function listFollowUpsForFreelancer(
-  { freelancerId, bucket, status, page = 1, limit = 20 },
+  { freelancerId, bucket, status, followUpType, priority, search, page = 1, limit = 20 },
   executor = pool
 ) {
   const conditions = ['l.assigned_freelancer_id = ?']
@@ -149,6 +169,7 @@ export async function listFollowUpsForFreelancer(
     conditions.push('fu.status = ?')
     params.push(status)
   }
+  applyCommonFilters({ followUpType, priority, search }, conditions, params)
 
   const whereClause = `WHERE ${conditions.join(' AND ')}`
   const offset = (page - 1) * limit

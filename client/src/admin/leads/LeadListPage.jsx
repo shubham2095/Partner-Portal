@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
+import { AlertTriangle } from 'lucide-react'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
 import { Button, Badge, Modal, ErrorState, PageHeader } from '../../components/ui'
 import { Input, Select, Textarea } from '../../components/forms'
@@ -9,6 +10,7 @@ import { listLeads, createLead } from '../../services/adminLeadService'
 import { LEAD_STATUSES, STATUS_VARIANTS } from '../../utils/leadConstants'
 
 const STATUS_OPTIONS = [{ value: '', label: 'All Statuses' }, ...LEAD_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))]
+const FOLLOWUP_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT', 'DEMO', 'OTHER']
 
 const LIMIT = 20
 
@@ -23,6 +25,7 @@ export default function LeadListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [duplicateWarning, setDuplicateWarning] = useState(null)
 
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm()
 
@@ -62,7 +65,14 @@ export default function LeadListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, statusFilter, unassignedOnly])
 
+  const openCreate = () => {
+    setDuplicateWarning(null)
+    reset()
+    setIsCreateOpen(true)
+  }
+
   const onCreate = async (values) => {
+    setDuplicateWarning(null)
     try {
       await createLead(values)
       toast.success('Lead created')
@@ -70,11 +80,15 @@ export default function LeadListPage() {
       reset()
       await loadLeads()
     } catch (error) {
-      // apiClient interceptor already surfaces an error toast
+      if (error.response?.status === 409) {
+        setDuplicateWarning(error.response.data.errors)
+        return
+      }
+      // apiClient interceptor already surfaces an error toast for other statuses
     }
   }
 
-  if (hasError) return <ErrorState onRetry={loadLeads} />
+  if (hasError) return <ErrorState title="Unable to load leads" onRetry={loadLeads} />
 
   const columns = [
     {
@@ -107,7 +121,7 @@ export default function LeadListPage() {
       <PageHeader
         title="Leads"
         description="Manage leads, assignment and the sales pipeline."
-        actions={<Button onClick={() => setIsCreateOpen(true)}>Create Lead</Button>}
+        actions={<Button onClick={openCreate}>Create Lead</Button>}
       />
 
       <FilterBar>
@@ -124,16 +138,47 @@ export default function LeadListPage() {
 
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create Lead">
         <form onSubmit={handleSubmit(onCreate)} className="flex flex-col gap-4">
+          {duplicateWarning && (
+            <div className="flex flex-col gap-2 rounded-md border border-warning/30 bg-warning-bg p-3 text-sm text-warning">
+              <div className="flex items-center gap-2 font-medium">
+                <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={2} />
+                Possible duplicate lead detected
+              </div>
+              <p>{duplicateWarning.message}</p>
+              {duplicateWarning.matches?.length > 0 && (
+                <ul className="flex flex-col gap-1">
+                  {duplicateWarning.matches.map((match) => (
+                    <li key={match.id}>
+                      <Link
+                        to={`/admin/leads/${match.id}`}
+                        className="font-medium text-primary hover:underline"
+                        onClick={() => setIsCreateOpen(false)}
+                      >
+                        {match.leadNumber} — {match.clientName} ({match.status})
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           <Input id="clientName" label="Client Name" {...register('clientName', { required: true })} />
-          <Input id="company" label="Company" {...register('company')} />
-          <Input id="mobile" label="Mobile" {...register('mobile', { required: true })} />
+          <Input id="company" label="Company / Business Name" {...register('company')} />
+          <Input id="mobile" label="Contact Number" {...register('mobile', { required: true })} />
           <Input id="email" label="Email" {...register('email')} />
-          <Input id="location" label="Location" {...register('location')} />
+          <Input id="location" label="City" {...register('location')} />
           <Input id="businessCategory" label="Business Category" {...register('businessCategory')} />
-          <Input id="serviceInterested" label="Service Interested" {...register('serviceInterested')} />
-          <Input id="source" label="Source" {...register('source')} />
-          <Input id="expectedValue" label="Expected Value" type="number" {...register('expectedValue')} />
+          <Input id="serviceInterested" label="Required Service" {...register('serviceInterested')} />
+          <Input id="source" label="Lead Source" {...register('source')} />
+          <Input id="expectedValue" label="Estimated Budget" type="number" {...register('expectedValue')} />
           <Textarea id="notes" label="Notes" {...register('notes')} />
+          <Input id="nextFollowUpDate" label="Next Follow-up (optional)" type="datetime-local" {...register('nextFollowUpDate')} />
+          <Select
+            id="followUpType"
+            label="Follow-up Type"
+            options={FOLLOWUP_TYPES.map((value) => ({ value, label: value.replace(/_/g, ' ') }))}
+            {...register('followUpType')}
+          />
           <Button type="submit" isLoading={isSubmitting}>
             Create Lead
           </Button>

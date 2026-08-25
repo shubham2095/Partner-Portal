@@ -1,6 +1,8 @@
 import path from 'node:path'
+import fs from 'node:fs'
 import { pool } from '../config/database.js'
 import { ApiError } from '../utils/ApiError.js'
+import { env } from '../config/env.js'
 import { findLeadByIdForUpdate } from '../models/leadModel.js'
 import { findProfileById } from '../models/freelancerProfileModel.js'
 import {
@@ -17,6 +19,9 @@ import {
   findCommissionByLeadId,
   findCommissionDetailById,
   updateCommissionStatus,
+  rejectCommission as rejectCommissionModel,
+  confirmClientPayment as confirmClientPaymentModel,
+  setContractDocumentPath,
   markCommissionPaid,
   listCommissionsAdmin,
   COMMISSION_STATUSES,
@@ -24,10 +29,21 @@ import {
 import { createPayment as createPaymentModel, findPaymentByCommissionId, listPaymentsAdmin } from '../models/paymentModel.js'
 import { findPaymentDetailsByFreelancerId } from '../models/freelancerPaymentDetailsModel.js'
 import { calculateCommissionAmount } from './commissionCalculationService.js'
+import { renderContractPdf } from './contractPdfService.js'
 import { logAudit } from './auditService.js'
 import { notify } from './notificationService.js'
 
 const LIFECYCLE_ORDER = ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID']
+
+// Same masking used on the freelancer's own view — admin functionality is
+// "authorized" per the audit requirements, but nothing in Part 3 needs the
+// raw account number (no payout automation yet), so it stays masked here too.
+function maskAccountNumber(accountNumber) {
+  if (!accountNumber) return null
+  const digits = String(accountNumber)
+  if (digits.length <= 4) return digits
+  return `${'X'.repeat(digits.length - 4)}${digits.slice(-4)}`
+}
 
 function nextStatus(current) {
   const index = LIFECYCLE_ORDER.indexOf(current)
@@ -165,6 +181,59 @@ export async function createCommissionForLead(leadId, adminId, req) {
   return findCommissionDetailById(commissionId)
 }
 
+// Client payment is a distinct, explicit admin action — never inferred from
+// the lead's CONVERTED status (Part 6 Phase 4). changeCommissionStatus below
+// refuses to approve a commission until this has been recorded.
+export async function confirmClientPayment(id, adminId, req) {
+  const commission = await findCommissionByIdForUpdate(id)
+  if (!commission) {
+    throw new ApiError(404, 'Commission not found')
+  }
+  if (commission.status === 'PAID' || commission.status === 'REJECTED') {
+    throw new ApiError(409, `Client payment cannot be confirmed on a ${commission.status} commission`)
+  }
+  await confirmClientPaymentModel(id, adminId)
+
+  await logAudit({
+    actorId: adminId,
+    action: 'CLIENT_PAYMENT_CONFIRMED',
+    entity: 'commission',
+    entityId: id,
+    req,
+  })
+
+  return findCommissionDetailById(id)
+}
+
+async function generateAndStoreContract(commission, adminId) {
+  const detail = await findCommissionDetailById(commission.id)
+  const freelancerProfile = await findProfileById(commission.freelancer_id)
+  const pdfBuffer = await renderContractPdf({
+    commissionId: detail.id,
+    freelancerName: detail.freelancer_name,
+    partnerId: detail.partner_id,
+    clientName: detail.client_name,
+    companyName: detail.company,
+    serviceInterested: detail.service_interested,
+    saleValue: detail.sale_value,
+    ruleRateType: detail.rule_rate_type,
+    ruleRateValue: detail.rule_rate_value,
+    commissionAmount: detail.commission_amount,
+    dealClosingDate: detail.deal_closing_date,
+    clientPaymentReceivedAt: detail.client_payment_received_at,
+    declarationNote: detail.declaration_note,
+    approvedAt: detail.approved_at,
+  })
+
+  const contractsDir = path.join(process.cwd(), env.upload.dir, 'contracts')
+  fs.mkdirSync(contractsDir, { recursive: true })
+  const filePath = path.join(contractsDir, `commission-${commission.id}.pdf`)
+  fs.writeFileSync(filePath, pdfBuffer)
+  const relativePath = path.relative(process.cwd(), filePath).split(path.sep).join('/')
+  await setContractDocumentPath(commission.id, relativePath)
+  return relativePath
+}
+
 export async function changeCommissionStatus(id, status, adminId, req) {
   const connection = await pool.getConnection()
   let commission
@@ -185,9 +254,17 @@ export async function changeCommissionStatus(id, status, adminId, req) {
     if (status !== expectedNext) {
       throw new ApiError(409, `Commission must move from ${commission.status} to ${expectedNext ?? 'a terminal state'} — cannot jump to ${status}`)
     }
-    if (status === 'PAYABLE') {
-      throw new ApiError(409, 'Use the payment endpoint to move a commission to PAID; PAYABLE is reached automatically before payment')
+    // Client Payment Received is a hard gate on approval (Part 6 Phase 4) —
+    // a commission can sit in EARNED indefinitely until an admin explicitly
+    // confirms the client actually paid the company.
+    if (status === 'APPROVED' && !commission.client_payment_received_at) {
+      throw new ApiError(409, 'Confirm client payment before approving this commission')
     }
+    // APPROVED -> PAYABLE is the Part 4 gate: only once a commission is
+    // PAYABLE can the freelancer request a withdrawal against it (see
+    // withdrawalModel.getAvailableBalance). Reaching PAYABLE does not pay
+    // anything by itself — that still only happens via createPayment below
+    // or via a withdrawal being marked paid (adminWithdrawalService).
 
     const approvedFields =
       status === 'APPROVED' ? { approvedBy: adminId, approvedAt: new Date() } : { approvedBy: null, approvedAt: null }
@@ -210,6 +287,15 @@ export async function changeCommissionStatus(id, status, adminId, req) {
     newValue: { status },
     req,
   })
+
+  // A downloadable contract record is generated once, the moment the
+  // commission first reaches APPROVED — the PDF snapshot reflects exactly
+  // the state that was approved, not whatever the row looks like later.
+  if (status === 'APPROVED') {
+    generateAndStoreContract({ id, freelancer_id: commission.freelancer_id }, adminId).catch((error) =>
+      console.error('[adminCommissionService] Failed to generate contract document:', error.message)
+    )
+  }
 
   const freelancerProfile = await findProfileById(commission.freelancer_id)
   notify({
@@ -242,8 +328,11 @@ export async function createPayment(commissionId, payload, file, adminId, req) {
     if (!commission) {
       throw new ApiError(404, 'Commission not found')
     }
-    if (commission.status !== 'APPROVED') {
-      throw new ApiError(409, 'Only approved commissions can be moved to payable/paid')
+    if (!['APPROVED', 'PAYABLE'].includes(commission.status)) {
+      throw new ApiError(409, 'Only approved or payable commissions can be moved to paid')
+    }
+    if (commission.withdrawal_request_id) {
+      throw new ApiError(409, 'This commission is reserved by a withdrawal request — mark that withdrawal paid instead')
     }
 
     const existingPayment = await findPaymentByCommissionId(commissionId, connection)
@@ -309,5 +398,58 @@ export async function getFreelancerPaymentDetails(freelancerId) {
   if (!profile) {
     throw new ApiError(404, 'Freelancer not found')
   }
-  return findPaymentDetailsByFreelancerId(freelancerId)
+  const details = await findPaymentDetailsByFreelancerId(freelancerId)
+  if (!details) return null
+  const { bank_account_number, ...rest } = details
+  return { ...rest, bank_account_number_masked: maskAccountNumber(bank_account_number) }
+}
+
+// ---- Closed deal review ----
+
+export async function rejectCommission(id, reason, adminId, req) {
+  const connection = await pool.getConnection()
+  let commission
+
+  try {
+    await connection.beginTransaction()
+    commission = await findCommissionByIdForUpdate(id, connection)
+    if (!commission) {
+      throw new ApiError(404, 'Commission not found')
+    }
+    if (!['POTENTIAL', 'EARNED'].includes(commission.status)) {
+      throw new ApiError(409, 'Only an unapproved closed-deal submission can be rejected')
+    }
+
+    await rejectCommissionModel(id, reason, connection)
+    await connection.commit()
+  } catch (error) {
+    await connection.rollback()
+    throw error
+  } finally {
+    connection.release()
+  }
+
+  await logAudit({
+    actorId: adminId,
+    action: 'DEAL_REJECTED',
+    entity: 'commission',
+    entityId: id,
+    oldValue: { status: commission.status },
+    newValue: { status: 'REJECTED', reason },
+    req,
+  })
+
+  const freelancerProfile = await findProfileById(commission.freelancer_id)
+  notify({
+    recipientUserId: freelancerProfile.user_id,
+    type: 'COMMISSION_STATUS_CHANGED',
+    title: 'Closed deal rejected',
+    message: `Your closed-deal submission of ₹${commission.commission_amount} was rejected: ${reason}`,
+    relatedEntityType: 'commission',
+    relatedEntityId: id,
+    emailSubject: 'Closed deal rejected',
+    emailHtml: `<p>Your closed-deal submission of ₹${commission.commission_amount} was rejected.</p><p><strong>Reason:</strong> ${reason}</p>`,
+  }).catch((error) => console.error('[adminCommissionService] Failed to notify freelancer of rejection:', error.message))
+
+  return findCommissionDetailById(id)
 }

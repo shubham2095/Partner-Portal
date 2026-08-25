@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendSuccess } from '../utils/apiResponse.js'
 import * as freelancerCommissionService from '../services/freelancerCommissionService.js'
@@ -21,6 +22,15 @@ export const getMyCommissionDetail = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: 'Commission detail retrieved', data: detail })
 })
 
+export const downloadMyContract = asyncHandler(async (req, res) => {
+  const contractPath = await freelancerCommissionService.getMyContractPath(Number(req.params.id), req.user.id)
+  if (!contractPath) {
+    return res.status(404).json({ success: false, message: 'No contract document available yet', errors: {} })
+  }
+  const absolutePath = path.join(process.cwd(), contractPath)
+  res.download(absolutePath, `contract-${req.params.id}.pdf`)
+})
+
 export const getMyEarningsSummary = asyncHandler(async (req, res) => {
   const summary = await freelancerCommissionService.getMyEarningsSummary(req.user.id)
   sendSuccess(res, { message: 'Earnings summary retrieved', data: summary })
@@ -32,14 +42,11 @@ export const getMyPaymentDetails = asyncHandler(async (req, res) => {
 })
 
 export const updateMyPaymentDetails = asyncHandler(async (req, res) => {
-  const paymentDetails = await freelancerCommissionService.updateMyPaymentDetails(req.user.id, {
-    accountHolderName: req.body.accountHolderName,
-    bankAccountNumber: req.body.bankAccountNumber,
-    ifscCode: req.body.ifscCode,
-    upiId: req.body.upiId,
-    panNumber: req.body.panNumber,
-    gstNumber: req.body.gstNumber,
-  })
+  const fields = {}
+  for (const key of ['accountHolderName', 'bankName', 'bankAccountNumber', 'accountType', 'ifscCode', 'upiId', 'panNumber', 'gstNumber']) {
+    if (req.body[key] !== undefined) fields[key] = req.body[key]
+  }
+  const paymentDetails = await freelancerCommissionService.updateMyPaymentDetails(req.user.id, fields, req)
   sendSuccess(res, { message: 'Payment details saved', data: { paymentDetails } })
 })
 

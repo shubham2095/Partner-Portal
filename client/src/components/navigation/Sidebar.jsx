@@ -16,11 +16,12 @@ export default function Sidebar({ items = [], title = 'Partner Portal' }) {
       )}
     >
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-white">
-          {title[0]}
-        </div>
-        {isSidebarOpen && (
-          <span className="truncate text-sm font-semibold text-text-primary">{title}</span>
+        {isSidebarOpen ? (
+          <img src="/heltog-logo.webp" alt="Heltog Technologies" className="h-7 w-auto" />
+        ) : (
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-white">
+            {title[0]}
+          </div>
         )}
       </div>
       <nav className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto p-3">

@@ -1,12 +1,51 @@
 import { pool } from '../config/database.js'
 import { ApiError } from '../utils/ApiError.js'
 import { findProfileByUserId } from '../models/freelancerProfileModel.js'
-import { findLeadDetailById, findLeadByIdForUpdate, updateLeadStatus, listLeadsForFreelancer } from '../models/leadModel.js'
+import {
+  findLeadDetailById,
+  findLeadByIdForUpdate,
+  updateLeadStatus,
+  listLeadsForFreelancer,
+  createLead as createLeadModel,
+  setLeadNumber,
+  findDuplicateLeadCandidates,
+} from '../models/leadModel.js'
 import { createActivity, listActivitiesByLead } from '../models/leadActivityModel.js'
-import { listAssignmentsByLead } from '../models/leadAssignmentModel.js'
+import { createAssignment, listAssignmentsByLead } from '../models/leadAssignmentModel.js'
+import { generateLeadNumber } from './leadNumberService.js'
 import { assertValidStatusTransition, activityTypeForStatus } from './leadStatusService.js'
 import { logAudit } from './auditService.js'
 import { notifyAdmins } from './notificationService.js'
+import * as followUpService from './followUpService.js'
+import { normalizePhoneDigits, normalizeEmail, withDuplicateCheckLock } from '../utils/leadDuplicateCheck.js'
+
+// A freelancer must never learn anything about another freelancer's lead
+// beyond "a possible duplicate exists" — no lead number, client name,
+// status, or company, since even the status alone could leak a rival
+// freelancer's deal progress. A match against the freelancer's OWN lead is
+// safe to describe fully (it's already their data) so they can navigate to
+// it instead of accidentally creating a second copy.
+function toDuplicateConflict(candidates, ownFreelancerProfileId) {
+  const ownMatches = candidates.filter((row) => row.assigned_freelancer_id === ownFreelancerProfileId)
+  if (ownMatches.length > 0) {
+    return {
+      duplicate: true,
+      message: 'You already have a lead with a matching phone number or email.',
+      matches: ownMatches.map((row) => ({
+        id: row.id,
+        leadNumber: row.lead_number,
+        clientName: row.client_name,
+        company: row.company,
+        status: row.status,
+      })),
+    }
+  }
+  return {
+    duplicate: true,
+    message: 'A similar lead may already exist in the CRM. Please check with your admin before proceeding.',
+    matches: [],
+  }
+}
 
 const ACTIVITY_TYPES = [
   'PHONE_CALL',
@@ -37,6 +76,88 @@ async function requireOwnLead(id, freelancerProfileId) {
 export async function resolveFreelancerProfileId(userId) {
   const profile = await requireProfile(userId)
   return profile.id
+}
+
+export async function createMyLead(payload, userId, req) {
+  const profile = await requireProfile(userId)
+
+  const normalizedPhoneDigits = normalizePhoneDigits(payload.mobile)
+  const normalizedEmail = normalizeEmail(payload.email)
+
+  const precheckCandidates = await findDuplicateLeadCandidates({ normalizedPhoneDigits, normalizedEmail })
+  if (precheckCandidates.length > 0) {
+    throw new ApiError(409, 'Possible duplicate lead detected', toDuplicateConflict(precheckCandidates, profile.id))
+  }
+
+  const connection = await pool.getConnection()
+  let leadId
+  try {
+    await withDuplicateCheckLock(connection, { normalizedPhoneDigits, normalizedEmail }, async () => {
+      await connection.beginTransaction()
+      try {
+        const lockedCandidates = await findDuplicateLeadCandidates({ normalizedPhoneDigits, normalizedEmail }, connection)
+        if (lockedCandidates.length > 0) {
+          throw new ApiError(409, 'Possible duplicate lead detected', toDuplicateConflict(lockedCandidates, profile.id))
+        }
+
+        // A freelancer-submitted lead is immediately linked to them — this is
+        // the "lead must remain linked to the freelancer who submitted it"
+        // requirement — using the exact same assignment mechanism (and history
+        // trail) admin-driven assignment already uses, not a parallel path.
+        leadId = await createLeadModel(
+          { ...payload, createdBy: userId, assignedFreelancerId: profile.id },
+          connection
+        )
+        await setLeadNumber(leadId, generateLeadNumber(leadId), connection)
+        await createActivity(
+          { leadId, actorId: userId, activityType: 'LEAD_CREATED', description: `Lead created: ${payload.clientName}` },
+          connection
+        )
+        await createAssignment(
+          { leadId, freelancerId: profile.id, previousFreelancerId: null, assignedBy: userId, assignmentNote: 'Self-submitted by freelancer' },
+          connection
+        )
+        await createActivity(
+          {
+            leadId,
+            actorId: userId,
+            activityType: 'ASSIGNED',
+            description: 'Lead self-assigned on creation',
+            metadata: { freelancerId: profile.id },
+          },
+          connection
+        )
+        await connection.commit()
+      } catch (error) {
+        await connection.rollback()
+        throw error
+      }
+    })
+  } finally {
+    connection.release()
+  }
+
+  await logAudit({ actorId: userId, action: 'LEAD_CREATED', entity: 'lead', entityId: leadId, newValue: payload, req })
+
+  notifyAdmins({
+    type: 'LEAD_ASSIGNED',
+    title: 'New lead submitted by freelancer',
+    message: `${profile.full_name} submitted a new lead: ${payload.clientName}.`,
+    relatedEntityType: 'lead',
+    relatedEntityId: leadId,
+  }).catch((error) => console.error('[freelancerLeadService] Failed to notify admins of new lead:', error.message))
+
+  if (payload.nextFollowUpDate) {
+    await followUpService
+      .createFollowUp(
+        leadId,
+        { scheduledAt: payload.nextFollowUpDate, followUpType: payload.followUpType ?? 'PHONE_CALL' },
+        { isAdmin: false, userId, freelancerProfileId: profile.id }
+      )
+      .catch((error) => console.error('[freelancerLeadService] Failed to create initial follow-up:', error.message))
+  }
+
+  return findLeadDetailById(leadId)
 }
 
 export async function listMyLeads(userId, query) {

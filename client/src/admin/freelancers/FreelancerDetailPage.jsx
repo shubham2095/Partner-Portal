@@ -23,7 +23,7 @@ import {
   rejectFreelancerDocument,
   downloadFreelancerDocument,
 } from '../../services/adminFreelancerService'
-import { changePartnerLevel } from '../../services/adminCommissionService'
+import { changePartnerLevel, getFreelancerPaymentDetails } from '../../services/adminCommissionService'
 
 const PARTNER_LEVELS = ['STARTER', 'CERTIFIED_PARTNER', 'PREMIUM_PARTNER', 'ELITE_PARTNER']
 
@@ -57,13 +57,15 @@ export default function FreelancerDetailPage() {
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
   const [levelValue, setLevelValue] = useState('')
+  const [paymentDetails, setPaymentDetails] = useState(null)
 
   const loadDetail = async () => {
     setStatus('loading')
     try {
-      const data = await getFreelancerDetail(id)
+      const [data, bankDetails] = await Promise.all([getFreelancerDetail(id), getFreelancerPaymentDetails(id)])
       setDetail(data)
       setLevelValue(data.profile.partner_level ?? 'STARTER')
+      setPaymentDetails(bankDetails)
       setStatus('ready')
     } catch (error) {
       setStatus('error')
@@ -233,6 +235,24 @@ export default function FreelancerDetailPage() {
             Update Level
           </Button>
         </div>
+      </Card>
+
+      <Card>
+        <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-text-primary">
+          <Briefcase className="h-4 w-4 text-primary" strokeWidth={2} /> Bank Details
+        </h3>
+        {paymentDetails ? (
+          <div className="divide-y divide-border">
+            <InfoRow label="Account Holder" value={paymentDetails.account_holder_name} />
+            <InfoRow label="Bank Name" value={paymentDetails.bank_name} />
+            <InfoRow label="Account Number" value={paymentDetails.bank_account_number_masked} />
+            <InfoRow label="Account Type" value={paymentDetails.account_type} />
+            <InfoRow label="IFSC" value={paymentDetails.ifsc_code} />
+            <InfoRow label="UPI ID" value={paymentDetails.upi_id} />
+          </div>
+        ) : (
+          <p className="py-2 text-sm text-text-secondary">This freelancer hasn't added bank details yet.</p>
+        )}
       </Card>
 
       <Card>

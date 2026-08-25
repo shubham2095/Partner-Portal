@@ -54,12 +54,7 @@ export default function MobileNavDrawer({ items = [], title = 'Partner Portal' }
         )}
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-white">
-              {title[0]}
-            </div>
-            <span className="truncate text-sm font-semibold text-text-primary">{title}</span>
-          </div>
+          <img src="/heltog-logo.webp" alt="Heltog Technologies" className="h-7 w-auto" />
           <button
             onClick={closeMobileNav}
             className="rounded-md p-1.5 text-text-secondary hover:bg-surface-muted hover:text-text-primary focus-ring"

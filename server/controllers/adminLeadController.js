@@ -19,10 +19,19 @@ function toLeadPayload(body) {
   }
 }
 
+function toCreateLeadPayload(body) {
+  return {
+    ...toLeadPayload(body),
+    nextFollowUpDate: body.nextFollowUpDate,
+    followUpType: body.followUpType,
+  }
+}
+
 function toFollowUpPayload(body) {
   const payload = {}
   if (body.scheduledAt !== undefined) payload.scheduled_at = body.scheduledAt
   if (body.followUpType !== undefined) payload.follow_up_type = body.followUpType
+  if (body.priority !== undefined) payload.priority = body.priority
   if (body.notes !== undefined) payload.notes = body.notes
   return payload
 }
@@ -48,7 +57,7 @@ export const listLeads = asyncHandler(async (req, res) => {
 })
 
 export const createLead = asyncHandler(async (req, res) => {
-  const lead = await adminLeadService.createLead(toLeadPayload(req.body), req.user.id, req)
+  const lead = await adminLeadService.createLead(toCreateLeadPayload(req.body), req.user.id, req)
   sendSuccess(res, { statusCode: 201, message: 'Lead created', data: { lead } })
 })
 
@@ -103,12 +112,15 @@ export const listFollowUpsForLead = asyncHandler(async (req, res) => {
 })
 
 export const listFollowUps = asyncHandler(async (req, res) => {
-  const { bucket, status, assignedFreelancerId, page = 1, limit = 20 } = req.query
+  const { bucket, status, assignedFreelancerId, followUpType, priority, search, page = 1, limit = 20 } = req.query
   const result = await followUpService.listFollowUps(
     {
       bucket,
       status,
       assignedFreelancerId: assignedFreelancerId ? Number(assignedFreelancerId) : undefined,
+      followUpType,
+      priority,
+      search,
       page: Number(page),
       limit: Number(limit),
     },
@@ -124,7 +136,7 @@ export const listFollowUps = asyncHandler(async (req, res) => {
 export const createFollowUp = asyncHandler(async (req, res) => {
   const followUp = await followUpService.createFollowUp(
     Number(req.params.id),
-    { scheduledAt: req.body.scheduledAt, followUpType: req.body.followUpType, notes: req.body.notes },
+    { scheduledAt: req.body.scheduledAt, followUpType: req.body.followUpType, priority: req.body.priority, notes: req.body.notes },
     { isAdmin: true, userId: req.user.id }
   )
   sendSuccess(res, { statusCode: 201, message: 'Follow-up created', data: { followUp } })

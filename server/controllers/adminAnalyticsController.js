@@ -53,6 +53,8 @@ export const getReport = asyncHandler(async (req, res) => {
   const result = await adminAnalyticsService.getReport(req.params.type, {
     dateFrom: req.query.dateFrom,
     dateTo: req.query.dateTo,
+    freelancerId: req.query.freelancerId,
+    status: req.query.status,
     page: Number(page),
     limit: Number(limit),
   })
@@ -67,6 +69,8 @@ export const exportReport = asyncHandler(async (req, res) => {
   const csv = await adminAnalyticsService.exportReportCsv(req.params.type, {
     dateFrom: req.query.dateFrom,
     dateTo: req.query.dateTo,
+    freelancerId: req.query.freelancerId,
+    status: req.query.status,
   })
   res.setHeader('Content-Type', 'text/csv')
   res.setHeader('Content-Disposition', `attachment; filename="${req.params.type}-report.csv"`)

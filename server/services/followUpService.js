@@ -42,6 +42,7 @@ export async function createFollowUp(leadId, payload, actor) {
     leadId,
     scheduledAt: payload.scheduledAt,
     followUpType: payload.followUpType,
+    priority: payload.priority,
     notes: payload.notes,
     createdBy: actor.userId,
   })

@@ -16,6 +16,8 @@ import {
   listPaymentsValidator,
   createPaymentValidator,
   changePartnerLevelValidator,
+  rejectCommissionValidator,
+  confirmClientPaymentValidator,
 } from '../validators/commission.validators.js'
 import * as adminCommissionController from '../controllers/adminCommissionController.js'
 
@@ -69,6 +71,32 @@ router.post(
   changeCommissionStatusValidator,
   validateRequest,
   adminCommissionController.changeCommissionStatus
+)
+router.post(
+  '/:id/reject',
+  commissionIdParamValidator,
+  rejectCommissionValidator,
+  validateRequest,
+  adminCommissionController.rejectCommission
+)
+router.get(
+  '/:id/deal-document',
+  commissionIdParamValidator,
+  validateRequest,
+  adminCommissionController.downloadDealDocument
+)
+router.post(
+  '/:id/confirm-client-payment',
+  commissionIdParamValidator,
+  confirmClientPaymentValidator,
+  validateRequest,
+  adminCommissionController.confirmClientPayment
+)
+router.get(
+  '/:id/contract',
+  commissionIdParamValidator,
+  validateRequest,
+  adminCommissionController.downloadContract
 )
 router.post(
   '/:id/payments',

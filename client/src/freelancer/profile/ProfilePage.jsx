@@ -40,6 +40,8 @@ function toFormValues(profile) {
     specializations: profile.specializations ?? '',
     preferredWorkingAreas: profile.preferred_working_areas ?? '',
     previousAgencyExperience: profile.previous_agency_experience ?? '',
+    bio: profile.bio ?? '',
+    preferredCommunication: profile.preferred_communication ?? '',
   }
 }
 
@@ -132,6 +134,8 @@ export default function ProfilePage() {
               <Input id="mobile" label="Mobile" {...register('mobile', { required: true })} />
               <Input id="location" label="Location" {...register('location')} />
               <DatePicker id="dateOfBirth" label="Date of Birth" {...register('dateOfBirth')} />
+              <Input id="preferredCommunication" label="Preferred Communication (e.g. WhatsApp, Email)" {...register('preferredCommunication')} />
+              <Textarea id="bio" label="Bio" className="sm:col-span-2" {...register('bio')} />
             </div>
           </div>
 

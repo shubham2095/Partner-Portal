@@ -14,7 +14,7 @@ import {
 } from '../../services/adminCommissionService'
 import { listLeads } from '../../services/adminLeadService'
 
-const COMMISSION_STATUSES = ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID']
+const COMMISSION_STATUSES = ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID', 'REJECTED']
 
 const STATUS_VARIANTS = {
   POTENTIAL: 'default',
@@ -22,6 +22,7 @@ const STATUS_VARIANTS = {
   APPROVED: 'warning',
   PAYABLE: 'warning',
   PAID: 'success',
+  REJECTED: 'danger',
 }
 
 const LIMIT = 20

@@ -255,51 +255,77 @@ export async function getServicePerformance(from, to, executor = pool) {
 
 // ---- Reports (tabular, exportable) ----
 
-export async function getLeadReport({ from, to, page = 1, limit = 50 }, executor = pool) {
+export async function getLeadReport({ from, to, freelancerId, page = 1, limit = 50 }, executor = pool) {
   const offset = (page - 1) * limit
+  const conditions = ['l.created_at >= ?', 'l.created_at < DATE_ADD(?, INTERVAL 1 DAY)']
+  const params = [toMysqlDate(from), toMysqlDate(to)]
+  if (freelancerId) {
+    conditions.push('l.assigned_freelancer_id = ?')
+    params.push(freelancerId)
+  }
+  const whereClause = `WHERE ${conditions.join(' AND ')}`
+
   const [rows] = await executor.query(
     `SELECT l.lead_number, l.client_name, l.mobile, l.status, l.source, l.service_interested,
             fp.full_name AS assigned_freelancer_name, l.created_at
      FROM leads l
      LEFT JOIN freelancer_profiles fp ON fp.id = l.assigned_freelancer_id
-     WHERE l.created_at >= ? AND l.created_at < DATE_ADD(?, INTERVAL 1 DAY)
+     ${whereClause}
      ORDER BY l.created_at DESC
      LIMIT ? OFFSET ?`,
-    [toMysqlDate(from), toMysqlDate(to), limit, offset]
+    [...params, limit, offset]
   )
-  const [[{ total }]] = await executor.query(
-    'SELECT COUNT(*) AS total FROM leads WHERE created_at >= ? AND created_at < DATE_ADD(?, INTERVAL 1 DAY)',
-    [toMysqlDate(from), toMysqlDate(to)]
-  )
+  const [[{ total }]] = await executor.query(`SELECT COUNT(*) AS total FROM leads l ${whereClause}`, params)
   return { rows, total: Number(total) }
 }
 
-export async function getSalesReport({ from, to, page = 1, limit = 50 }, executor = pool) {
+export async function getSalesReport({ from, to, freelancerId, page = 1, limit = 50 }, executor = pool) {
   const offset = (page - 1) * limit
+  const conditions = [
+    "la.activity_type = 'CONVERTED'",
+    "l.status = 'CONVERTED'",
+    'la.created_at >= ?',
+    'la.created_at < DATE_ADD(?, INTERVAL 1 DAY)',
+  ]
+  const params = [toMysqlDate(from), toMysqlDate(to)]
+  if (freelancerId) {
+    conditions.push('l.assigned_freelancer_id = ?')
+    params.push(freelancerId)
+  }
+  const whereClause = `WHERE ${conditions.join(' AND ')}`
+
   const [rows] = await executor.query(
     `SELECT l.lead_number, l.client_name, l.service_interested, l.conversion_value, la.created_at AS converted_at,
             fp.full_name AS freelancer_name
      FROM lead_activities la
      INNER JOIN leads l ON l.id = la.lead_id
      LEFT JOIN freelancer_profiles fp ON fp.id = l.assigned_freelancer_id
-     WHERE la.activity_type = 'CONVERTED'
-       AND l.status = 'CONVERTED'
-       AND la.created_at >= ? AND la.created_at < DATE_ADD(?, INTERVAL 1 DAY)
+     ${whereClause}
      ORDER BY la.created_at DESC
      LIMIT ? OFFSET ?`,
-    [toMysqlDate(from), toMysqlDate(to), limit, offset]
+    [...params, limit, offset]
   )
   const [[{ total }]] = await executor.query(
-    `SELECT COUNT(*) AS total FROM lead_activities la INNER JOIN leads l ON l.id = la.lead_id
-     WHERE la.activity_type = 'CONVERTED' AND l.status = 'CONVERTED'
-       AND la.created_at >= ? AND la.created_at < DATE_ADD(?, INTERVAL 1 DAY)`,
-    [toMysqlDate(from), toMysqlDate(to)]
+    `SELECT COUNT(*) AS total FROM lead_activities la INNER JOIN leads l ON l.id = la.lead_id ${whereClause}`,
+    params
   )
   return { rows, total: Number(total) }
 }
 
-export async function getCommissionReport({ from, to, page = 1, limit = 50 }, executor = pool) {
+export async function getCommissionReport({ from, to, freelancerId, status, page = 1, limit = 50 }, executor = pool) {
   const offset = (page - 1) * limit
+  const conditions = ['c.created_at >= ?', 'c.created_at < DATE_ADD(?, INTERVAL 1 DAY)']
+  const params = [toMysqlDate(from), toMysqlDate(to)]
+  if (freelancerId) {
+    conditions.push('c.freelancer_id = ?')
+    params.push(freelancerId)
+  }
+  if (status) {
+    conditions.push('c.status = ?')
+    params.push(status)
+  }
+  const whereClause = `WHERE ${conditions.join(' AND ')}`
+
   const [rows] = await executor.query(
     `SELECT c.id, l.lead_number, fp.full_name AS freelancer_name, c.sale_value, c.commission_amount,
             c.status, c.approved_at, p.payment_date
@@ -307,13 +333,85 @@ export async function getCommissionReport({ from, to, page = 1, limit = 50 }, ex
      INNER JOIN leads l ON l.id = c.lead_id
      INNER JOIN freelancer_profiles fp ON fp.id = c.freelancer_id
      LEFT JOIN payments p ON p.commission_id = c.id
-     WHERE c.created_at >= ? AND c.created_at < DATE_ADD(?, INTERVAL 1 DAY)
+     ${whereClause}
      ORDER BY c.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  )
+  const [[{ total }]] = await executor.query(`SELECT COUNT(*) AS total FROM commissions c ${whereClause}`, params)
+  return { rows, total: Number(total) }
+}
+
+export async function getWithdrawalReport({ from, to, page = 1, limit = 50 }, executor = pool) {
+  const offset = (page - 1) * limit
+  const [rows] = await executor.query(
+    `SELECT w.id, fp.full_name AS freelancer_name, fp.partner_id, w.amount, w.status,
+            w.created_at AS requested_at, w.reviewed_at, w.paid_at, w.transaction_reference
+     FROM withdrawal_requests w
+     INNER JOIN freelancer_profiles fp ON fp.id = w.freelancer_id
+     WHERE w.created_at >= ? AND w.created_at < DATE_ADD(?, INTERVAL 1 DAY)
+     ORDER BY w.created_at DESC
      LIMIT ? OFFSET ?`,
     [toMysqlDate(from), toMysqlDate(to), limit, offset]
   )
   const [[{ total }]] = await executor.query(
-    'SELECT COUNT(*) AS total FROM commissions WHERE created_at >= ? AND created_at < DATE_ADD(?, INTERVAL 1 DAY)',
+    'SELECT COUNT(*) AS total FROM withdrawal_requests WHERE created_at >= ? AND created_at < DATE_ADD(?, INTERVAL 1 DAY)',
+    [toMysqlDate(from), toMysqlDate(to)]
+  )
+  return { rows, total: Number(total) }
+}
+
+export async function getFollowUpReport({ from, to, page = 1, limit = 50 }, executor = pool) {
+  const offset = (page - 1) * limit
+  const [rows] = await executor.query(
+    `SELECT fu.id, l.lead_number, l.client_name, fp.full_name AS freelancer_name,
+            fu.follow_up_type, fu.priority, fu.status, fu.scheduled_at, fu.completed_at, fu.outcome
+     FROM follow_ups fu
+     INNER JOIN leads l ON l.id = fu.lead_id
+     LEFT JOIN freelancer_profiles fp ON fp.id = l.assigned_freelancer_id
+     WHERE fu.scheduled_at >= ? AND fu.scheduled_at < DATE_ADD(?, INTERVAL 1 DAY)
+     ORDER BY fu.scheduled_at DESC
+     LIMIT ? OFFSET ?`,
+    [toMysqlDate(from), toMysqlDate(to), limit, offset]
+  )
+  const [[{ total }]] = await executor.query(
+    'SELECT COUNT(*) AS total FROM follow_ups WHERE scheduled_at >= ? AND scheduled_at < DATE_ADD(?, INTERVAL 1 DAY)',
+    [toMysqlDate(from), toMysqlDate(to)]
+  )
+  return { rows, total: Number(total) }
+}
+
+export async function getCourseCompletionReport({ page = 1, limit = 50 }, executor = pool) {
+  const offset = (page - 1) * limit
+  const [rows] = await executor.query(
+    `SELECT te.id, fp.full_name AS freelancer_name, fp.partner_id, t.title AS training_title,
+            te.status, te.progress_percentage, te.started_at, te.completed_at
+     FROM training_enrollments te
+     INNER JOIN freelancer_profiles fp ON fp.id = te.freelancer_id
+     INNER JOIN trainings t ON t.id = te.training_id
+     ORDER BY te.started_at DESC
+     LIMIT ? OFFSET ?`,
+    [limit, offset]
+  )
+  const [[{ total }]] = await executor.query('SELECT COUNT(*) AS total FROM training_enrollments')
+  return { rows, total: Number(total) }
+}
+
+export async function getTicketReport({ from, to, page = 1, limit = 50 }, executor = pool) {
+  const offset = (page - 1) * limit
+  const [rows] = await executor.query(
+    `SELECT t.id, t.ticket_number, fp.full_name AS freelancer_name, t.category, t.priority, t.status,
+            admin.email AS assigned_admin_email, t.created_at, t.resolved_at, t.closed_at
+     FROM tickets t
+     INNER JOIN freelancer_profiles fp ON fp.id = t.freelancer_id
+     LEFT JOIN users admin ON admin.id = t.assigned_admin_id
+     WHERE t.created_at >= ? AND t.created_at < DATE_ADD(?, INTERVAL 1 DAY)
+     ORDER BY t.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [toMysqlDate(from), toMysqlDate(to), limit, offset]
+  )
+  const [[{ total }]] = await executor.query(
+    'SELECT COUNT(*) AS total FROM tickets WHERE created_at >= ? AND created_at < DATE_ADD(?, INTERVAL 1 DAY)',
     [toMysqlDate(from), toMysqlDate(to)]
   )
   return { rows, total: Number(total) }

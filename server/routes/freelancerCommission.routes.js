@@ -25,5 +25,11 @@ router.put(
 router.get('/level-history', freelancerCommissionController.getMyLevelHistory)
 router.get('/', listMyCommissionsValidator, validateRequest, freelancerCommissionController.listMyCommissions)
 router.get('/:id', commissionIdParamValidator, validateRequest, freelancerCommissionController.getMyCommissionDetail)
+router.get(
+  '/:id/contract',
+  commissionIdParamValidator,
+  validateRequest,
+  freelancerCommissionController.downloadMyContract
+)
 
 export default router

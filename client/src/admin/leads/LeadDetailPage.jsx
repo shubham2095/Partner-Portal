@@ -33,7 +33,8 @@ import {
 import { listFreelancers } from '../../services/adminFreelancerService'
 
 const ACTIVITY_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT', 'NOTE_ADDED']
-const FOLLOWUP_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT']
+const FOLLOWUP_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT', 'DEMO', 'OTHER']
+const FOLLOWUP_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH']
 
 const ACTIVITY_ICONS = {
   PHONE_CALL: Phone,
@@ -89,7 +90,7 @@ export default function LeadDetailPage() {
   const editForm = useForm()
   const assignForm = useForm({ defaultValues: { freelancerId: '', note: '' } })
   const activityForm = useForm({ defaultValues: { activityType: 'PHONE_CALL', description: '' } })
-  const followUpForm = useForm({ defaultValues: { scheduledAt: '', followUpType: 'PHONE_CALL', notes: '' } })
+  const followUpForm = useForm({ defaultValues: { scheduledAt: '', followUpType: 'PHONE_CALL', priority: 'MEDIUM', notes: '' } })
   const completeForm = useForm({ defaultValues: { outcome: '', nextFollowUpDate: '' } })
   const [completingFollowUp, setCompletingFollowUp] = useState(null)
 
@@ -456,6 +457,12 @@ export default function LeadDetailPage() {
             label="Type"
             options={FOLLOWUP_TYPES.map((value) => ({ value, label: value.replace(/_/g, ' ') }))}
             {...followUpForm.register('followUpType')}
+          />
+          <Select
+            id="priority"
+            label="Priority"
+            options={FOLLOWUP_PRIORITIES.map((value) => ({ value, label: value }))}
+            {...followUpForm.register('priority')}
           />
           <Textarea id="followUpNotes" label="Notes" {...followUpForm.register('notes')} />
           <Button type="submit" isLoading={followUpForm.formState.isSubmitting}>

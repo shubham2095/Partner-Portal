@@ -28,14 +28,15 @@ export async function createLead(
     expectedValue,
     notes,
     createdBy,
+    assignedFreelancerId,
   },
   executor = pool
 ) {
   const [result] = await executor.query(
     `INSERT INTO leads
        (client_name, company, mobile, email, location, business_category, service_interested,
-        source, lead_date, expected_value, notes, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        source, lead_date, expected_value, notes, created_by, assigned_freelancer_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       clientName,
       company ?? null,
@@ -49,9 +50,39 @@ export async function createLead(
       expectedValue ?? null,
       notes ?? null,
       createdBy,
+      assignedFreelancerId ?? null,
     ]
   )
   return result.insertId
+}
+
+// Deterministic duplicate-lead lookup — see utils/leadDuplicateCheck.js for
+// the normalization rules and for how the check-then-insert race window is
+// closed (a MySQL named lock around the whole check+insert, not a locking
+// SELECT — see that file for why FOR UPDATE was tried and rejected).
+//
+// Queries the normalized_mobile/normalized_email generated+indexed columns
+// (migration 0056) rather than wrapping mobile/email in SQL functions here.
+// The old inline-function version had no usable index (confirmed via
+// EXPLAIN: possible_keys NULL), forcing a full scan on every lead creation.
+export async function findDuplicateLeadCandidates({ normalizedPhoneDigits, normalizedEmail }, executor = pool) {
+  const conditions = []
+  const params = []
+  if (normalizedPhoneDigits) {
+    conditions.push('normalized_mobile = ?')
+    params.push(normalizedPhoneDigits)
+  }
+  if (normalizedEmail) {
+    conditions.push('normalized_email = ?')
+    params.push(normalizedEmail)
+  }
+  if (conditions.length === 0) return []
+  const [rows] = await executor.query(
+    `SELECT id, lead_number, client_name, company, status, assigned_freelancer_id, created_by, created_at
+     FROM leads WHERE ${conditions.join(' OR ')} ORDER BY created_at DESC LIMIT 5`,
+    params
+  )
+  return rows
 }
 
 export async function createExternalLead(

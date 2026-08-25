@@ -37,6 +37,26 @@ export async function changeCommissionStatus(id, status) {
   return data.data.commission
 }
 
+export async function rejectCommission(id, reason) {
+  const { data } = await apiClient.post(`/admin/commissions/${id}/reject`, { reason })
+  return data.data.commission
+}
+
+export async function downloadDealDocument(id) {
+  const { data } = await apiClient.get(`/admin/commissions/${id}/deal-document`, { responseType: 'blob' })
+  return data
+}
+
+export async function confirmClientPayment(id) {
+  const { data } = await apiClient.post(`/admin/commissions/${id}/confirm-client-payment`)
+  return data.data.commission
+}
+
+export async function downloadContract(id) {
+  const { data } = await apiClient.get(`/admin/commissions/${id}/contract`, { responseType: 'blob' })
+  return data
+}
+
 // Payments
 export async function createPayment(commissionId, formData) {
   const { data } = await apiClient.post(`/admin/commissions/${commissionId}/payments`, formData, {

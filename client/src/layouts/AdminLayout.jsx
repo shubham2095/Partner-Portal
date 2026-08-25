@@ -14,6 +14,9 @@ import {
   BarChart3,
   Plug,
   Settings,
+  CalendarClock,
+  ArrowUpRight,
+  LifeBuoy,
 } from 'lucide-react'
 import { Sidebar, Topbar, MobileNavDrawer } from '../components/navigation'
 import { PageLoader } from '../components/ui'
@@ -23,6 +26,7 @@ const NAV_ITEMS = [
   { section: 'Operations' },
   { to: '/admin/freelancers', label: 'Freelancers', icon: Users },
   { to: '/admin/leads', label: 'Leads', icon: Target },
+  { to: '/admin/follow-ups', label: 'Follow-ups', icon: CalendarClock },
   { section: 'Training' },
   { to: '/admin/webinars', label: 'Webinars', icon: Video },
   { to: '/admin/questions', label: 'Questions', icon: HelpCircle },
@@ -32,8 +36,11 @@ const NAV_ITEMS = [
   { section: 'Finance' },
   { to: '/admin/sales', label: 'Sales', icon: TrendingUp },
   { to: '/admin/commissions', label: 'Commissions', icon: Wallet },
+  { to: '/admin/withdrawals', label: 'Withdrawals', icon: ArrowUpRight },
   { section: 'Insights' },
   { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
+  { section: 'Support' },
+  { to: '/admin/tickets', label: 'Tickets', icon: LifeBuoy },
   { section: 'System' },
   { to: '/admin/integrations', label: 'Integrations', icon: Plug },
   { to: '/admin/settings', label: 'Settings', icon: Settings },

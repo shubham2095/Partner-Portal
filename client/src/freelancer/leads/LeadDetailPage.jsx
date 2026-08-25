@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowLeft, CalendarClock } from 'lucide-react'
 import { Button, Badge, Modal, Card, LoadingState, ErrorState } from '../../components/ui'
-import { Input, Select, Textarea } from '../../components/forms'
+import { Input, Select, Textarea, FileUpload, Checkbox } from '../../components/forms'
 import { LEAD_STATUSES, STATUS_VARIANTS } from '../../utils/leadConstants'
 
 function followUpUrgency(scheduledAt) {
@@ -24,11 +24,23 @@ import {
   createFollowUp,
   completeFollowUp,
   cancelFollowUp,
+  getMyClosedDeal,
+  submitClosedDeal,
 } from '../../services/freelancerLeadService'
 
 const ACTIVITY_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT', 'NOTE_ADDED']
-const FOLLOWUP_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT']
+const FOLLOWUP_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT', 'DEMO', 'OTHER']
+const FOLLOWUP_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH']
 const TERMINAL_STATUSES = new Set(['CONVERTED', 'LOST'])
+
+const DEAL_STATUS_VARIANTS = {
+  POTENTIAL: 'info',
+  EARNED: 'info',
+  APPROVED: 'success',
+  PAYABLE: 'success',
+  PAID: 'success',
+  REJECTED: 'danger',
+}
 
 export default function LeadDetailPage() {
   const { id } = useParams()
@@ -43,10 +55,14 @@ export default function LeadDetailPage() {
   const [timeline, setTimeline] = useState({ activities: [], assignments: [] })
   const [followUps, setFollowUps] = useState([])
   const [completingFollowUp, setCompletingFollowUp] = useState(null)
+  const [deal, setDeal] = useState(null)
+  const [isDealOpen, setIsDealOpen] = useState(false)
+  const [dealFile, setDealFile] = useState(null)
 
   const activityForm = useForm({ defaultValues: { activityType: 'PHONE_CALL', description: '' } })
-  const followUpForm = useForm({ defaultValues: { scheduledAt: '', followUpType: 'PHONE_CALL', notes: '' } })
+  const followUpForm = useForm({ defaultValues: { scheduledAt: '', followUpType: 'PHONE_CALL', priority: 'MEDIUM', notes: '' } })
   const completeForm = useForm({ defaultValues: { outcome: '', nextFollowUpDate: '' } })
+  const dealForm = useForm({ defaultValues: { declarationNote: '', dealClosingDate: '', termsAccepted: false } })
 
   const loadAll = async () => {
     setStatus('loading')
@@ -60,9 +76,30 @@ export default function LeadDetailPage() {
       setStatusValue(leadData.status)
       setTimeline(timelineData)
       setFollowUps(followUpsData)
+      if (leadData.status === 'CONVERTED') {
+        setDeal(await getMyClosedDeal(id))
+      }
       setStatus('ready')
     } catch (error) {
       setStatus('error')
+    }
+  }
+
+  const onSubmitDeal = async (values) => {
+    try {
+      const formData = new FormData()
+      if (values.declarationNote) formData.append('declarationNote', values.declarationNote)
+      if (values.dealClosingDate) formData.append('dealClosingDate', values.dealClosingDate)
+      formData.append('termsAccepted', values.termsAccepted ? 'true' : 'false')
+      if (dealFile) formData.append('document', dealFile)
+      const commission = await submitClosedDeal(id, formData)
+      setDeal(commission)
+      toast.success('Closed deal submitted for review')
+      setIsDealOpen(false)
+      setDealFile(null)
+      dealForm.reset()
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
     }
   }
 
@@ -263,6 +300,50 @@ export default function LeadDetailPage() {
         })}
       </Card>
 
+      {lead.status === 'CONVERTED' && (
+        <Card className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-text-primary">Closed Deal / Commission Contract</h3>
+            {deal && <Badge variant={DEAL_STATUS_VARIANTS[deal.status] ?? 'default'}>{deal.status}</Badge>}
+          </div>
+
+          {!deal && (
+            <>
+              <p className="text-sm text-text-secondary">
+                This lead is converted. Submit the closed deal so it can be reviewed and turned into a payable commission.
+              </p>
+              <Button size="sm" className="w-fit" onClick={() => setIsDealOpen(true)}>
+                Submit Closed Deal
+              </Button>
+            </>
+          )}
+
+          {deal && deal.status === 'REJECTED' && (
+            <>
+              <p className="text-sm text-danger">Rejected: {deal.rejection_reason}</p>
+              <Button size="sm" className="w-fit" onClick={() => setIsDealOpen(true)}>
+                Resubmit Closed Deal
+              </Button>
+            </>
+          )}
+
+          {deal && ['POTENTIAL', 'EARNED'].includes(deal.status) && (
+            <p className="text-sm text-text-secondary">
+              Submitted for ₹{deal.commission_amount} commission — pending admin review.
+            </p>
+          )}
+
+          {deal && ['APPROVED', 'PAYABLE', 'PAID'].includes(deal.status) && (
+            <p className="text-sm text-text-secondary">
+              Approved — commission of ₹{deal.commission_amount} is now {deal.status.toLowerCase()}.{' '}
+              <Link to={`/freelancer/commissions/${deal.id}`} className="text-primary hover:underline">
+                View commission
+              </Link>
+            </p>
+          )}
+        </Card>
+      )}
+
       <Card className="flex flex-col gap-3">
         <h3 className="text-base font-semibold text-text-primary">Timeline</h3>
         {timeline.activities.length === 0 && <p className="text-sm text-text-secondary">No activity yet.</p>}
@@ -276,6 +357,35 @@ export default function LeadDetailPage() {
           </div>
         ))}
       </Card>
+
+      <Modal isOpen={isDealOpen} onClose={() => setIsDealOpen(false)} title="Submit Closed Deal">
+        <form onSubmit={dealForm.handleSubmit(onSubmitDeal)} className="flex flex-col gap-4">
+          <p className="text-sm text-text-secondary">
+            Conversion value: {lead.conversion_value ? `₹${lead.conversion_value}` : '—'}. Commission is calculated by the
+            admin's configured commission rule once submitted.
+          </p>
+          <Input id="dealClosingDate" label="Deal Closing Date" type="date" {...dealForm.register('dealClosingDate')} />
+          <Textarea
+            id="declarationNote"
+            label="Declaration / Notes (optional)"
+            {...dealForm.register('declarationNote')}
+          />
+          <FileUpload label="Supporting Document (optional)" accept=".pdf,image/*,.doc,.docx" onChange={setDealFile} />
+          <div>
+            <Checkbox
+              id="termsAccepted"
+              label="I confirm this deal is genuine and accept the commission contract terms & conditions."
+              {...dealForm.register('termsAccepted', { required: 'You must accept the terms & conditions' })}
+            />
+            {dealForm.formState.errors.termsAccepted && (
+              <p className="mt-1 text-xs text-danger">{dealForm.formState.errors.termsAccepted.message}</p>
+            )}
+          </div>
+          <Button type="submit" isLoading={dealForm.formState.isSubmitting}>
+            Submit for Review
+          </Button>
+        </form>
+      </Modal>
 
       <Modal isOpen={isActivityOpen} onClose={() => setIsActivityOpen(false)} title="Log Activity">
         <form onSubmit={activityForm.handleSubmit(onAddActivity)} className="flex flex-col gap-4">
@@ -300,6 +410,12 @@ export default function LeadDetailPage() {
             label="Type"
             options={FOLLOWUP_TYPES.map((value) => ({ value, label: value.replace(/_/g, ' ') }))}
             {...followUpForm.register('followUpType')}
+          />
+          <Select
+            id="priority"
+            label="Priority"
+            options={FOLLOWUP_PRIORITIES.map((value) => ({ value, label: value }))}
+            {...followUpForm.register('priority')}
           />
           <Textarea id="followUpNotes" label="Notes" {...followUpForm.register('notes')} />
           <Button type="submit" isLoading={followUpForm.formState.isSubmitting}>

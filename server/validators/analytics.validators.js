@@ -1,6 +1,19 @@
 import { query, param } from 'express-validator'
 
-const REPORT_TYPES = ['freelancer', 'lead', 'sales', 'revenue', 'commission', 'webinar', 'conversion', 'lost-leads']
+const REPORT_TYPES = [
+  'freelancer',
+  'lead',
+  'sales',
+  'revenue',
+  'commission',
+  'webinar',
+  'conversion',
+  'lost-leads',
+  'withdrawal',
+  'follow-up',
+  'course',
+  'ticket',
+]
 
 export const dateRangeValidator = [
   query('dateFrom').optional().isISO8601().withMessage('dateFrom must be a valid ISO date'),
@@ -26,5 +39,10 @@ export const paginationValidator = [
 ]
 
 export const reportTypeParamValidator = [param('type').isIn(REPORT_TYPES).withMessage('Unknown report type')]
+
+export const reportFilterValidator = [
+  query('freelancerId').optional().isInt({ min: 1 }),
+  query('status').optional().trim().isLength({ max: 30 }),
+]
 
 export const webinarIdQueryValidator = [query('webinarId').optional().isInt({ min: 1 })]

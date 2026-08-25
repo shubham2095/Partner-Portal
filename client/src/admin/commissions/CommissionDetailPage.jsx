@@ -4,11 +4,15 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Check } from 'lucide-react'
 import { Button, Badge, Modal, Card, LoadingState, ErrorState } from '../../components/ui'
-import { Input, FileUpload } from '../../components/forms'
+import { Input, FileUpload, Textarea } from '../../components/forms'
 import { cn } from '../../utils/cn'
 import {
   getCommissionDetail,
   changeCommissionStatus,
+  rejectCommission,
+  downloadDealDocument,
+  confirmClientPayment,
+  downloadContract,
   createPayment,
   downloadPaymentProof,
 } from '../../services/adminCommissionService'
@@ -21,11 +25,16 @@ const STATUS_VARIANTS = {
   APPROVED: 'warning',
   PAYABLE: 'warning',
   PAID: 'success',
+  REJECTED: 'danger',
 }
 
 const NEXT_STATUS = {
   POTENTIAL: 'EARNED',
   EARNED: 'APPROVED',
+  // Moving to PAYABLE is what makes a commission count toward the
+  // freelancer's available-for-withdrawal balance (Part 4) — it does not
+  // pay anything by itself.
+  APPROVED: 'PAYABLE',
 }
 
 function formatCurrency(value) {
@@ -71,8 +80,10 @@ export default function CommissionDetailPage() {
   const [isBusy, setIsBusy] = useState(false)
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
   const [proofFile, setProofFile] = useState(null)
+  const [isRejectOpen, setIsRejectOpen] = useState(false)
 
   const paymentForm = useForm({ defaultValues: { paymentDate: '', transactionReference: '' } })
+  const rejectForm = useForm({ defaultValues: { reason: '' } })
 
   const loadDetail = async () => {
     setStatus('loading')
@@ -139,6 +150,63 @@ export default function CommissionDetailPage() {
     }
   }
 
+  const handleDownloadDealDocument = async () => {
+    try {
+      const blob = await downloadDealDocument(id)
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `deal-document-${id}`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    }
+  }
+
+  const handleConfirmClientPayment = async () => {
+    setIsBusy(true)
+    try {
+      await confirmClientPayment(id)
+      toast.success('Client payment confirmed')
+      await loadDetail()
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  const handleDownloadContract = async () => {
+    try {
+      const blob = await downloadContract(id)
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `contract-${id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    }
+  }
+
+  const onRejectDeal = async (values) => {
+    try {
+      await rejectCommission(id, values.reason)
+      toast.success('Closed deal rejected')
+      setIsRejectOpen(false)
+      rejectForm.reset()
+      await loadDetail()
+    } catch (error) {
+      // apiClient interceptor already surfaces an error toast
+    }
+  }
+
   if (status === 'loading') return <LoadingState label="Loading commission..." />
   if (status === 'error') return <ErrorState title="Unable to load this commission" onRetry={loadDetail} />
 
@@ -174,9 +242,16 @@ export default function CommissionDetailPage() {
           </div>
         </div>
 
-        <div className="py-2">
-          <LifecycleStepper currentStatus={commission.status} />
-        </div>
+        {commission.status === 'REJECTED' ? (
+          <div className="rounded-lg bg-danger-bg p-4 text-sm text-danger">
+            <p className="font-semibold">Rejected</p>
+            <p>{commission.rejection_reason}</p>
+          </div>
+        ) : (
+          <div className="py-2">
+            <LifecycleStepper currentStatus={commission.status} />
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
           <div>
@@ -199,12 +274,59 @@ export default function CommissionDetailPage() {
               {commission.approved_at ? new Date(commission.approved_at).toLocaleString() : '—'}
             </p>
           </div>
+          <div>
+            <p className="text-caption">Client Payment Received</p>
+            <p className="text-text-primary">
+              {commission.client_payment_received_at
+                ? new Date(commission.client_payment_received_at).toLocaleString()
+                : 'Not yet confirmed'}
+            </p>
+          </div>
+          <div>
+            <p className="text-caption">Deal Closing Date</p>
+            <p className="text-text-primary">
+              {commission.deal_closing_date ? new Date(commission.deal_closing_date).toDateString() : '—'}
+            </p>
+          </div>
         </div>
 
+        {(commission.declaration_note || commission.supporting_document_path) && (
+          <div className="rounded-lg bg-surface-muted p-4 text-sm">
+            <p className="text-caption mb-1">Freelancer Declaration</p>
+            {commission.declaration_note && <p className="text-text-primary">{commission.declaration_note}</p>}
+            {commission.supporting_document_path && (
+              <Button size="sm" variant="secondary" className="mt-2" onClick={handleDownloadDealDocument}>
+                Download Supporting Document
+              </Button>
+            )}
+          </div>
+        )}
+
+        {['POTENTIAL', 'EARNED'].includes(commission.status) && !commission.client_payment_received_at && (
+          <p className="text-xs text-warning">
+            Client payment must be confirmed before this commission can be approved.
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+          {['POTENTIAL', 'EARNED'].includes(commission.status) && !commission.client_payment_received_at && (
+            <Button size="sm" variant="secondary" isLoading={isBusy} onClick={handleConfirmClientPayment}>
+              Confirm Client Payment
+            </Button>
+          )}
           {NEXT_STATUS[commission.status] && (
-            <Button size="sm" isLoading={isBusy} onClick={handleAdvanceStatus}>
+            <Button
+              size="sm"
+              isLoading={isBusy}
+              disabled={NEXT_STATUS[commission.status] === 'APPROVED' && !commission.client_payment_received_at}
+              onClick={handleAdvanceStatus}
+            >
               Move to {NEXT_STATUS[commission.status]}
+            </Button>
+          )}
+          {['POTENTIAL', 'EARNED'].includes(commission.status) && (
+            <Button size="sm" variant="danger" onClick={() => setIsRejectOpen(true)}>
+              Reject
             </Button>
           )}
           {commission.status === 'APPROVED' && (
@@ -215,6 +337,11 @@ export default function CommissionDetailPage() {
           {payment && (
             <Button size="sm" variant="secondary" onClick={handleDownloadProof} disabled={!payment.payment_proof_path}>
               Download Proof
+            </Button>
+          )}
+          {commission.contract_document_path && (
+            <Button size="sm" variant="secondary" onClick={handleDownloadContract}>
+              Download Contract
             </Button>
           )}
         </div>
@@ -239,6 +366,20 @@ export default function CommissionDetailPage() {
           </div>
         </Card>
       )}
+
+      <Modal isOpen={isRejectOpen} onClose={() => setIsRejectOpen(false)} title="Reject Closed Deal">
+        <form onSubmit={rejectForm.handleSubmit(onRejectDeal)} className="flex flex-col gap-4">
+          <Textarea
+            id="reason"
+            label="Rejection Reason"
+            error={rejectForm.formState.errors.reason?.message}
+            {...rejectForm.register('reason', { required: 'A rejection reason is required' })}
+          />
+          <Button type="submit" variant="danger" isLoading={rejectForm.formState.isSubmitting}>
+            Reject
+          </Button>
+        </form>
+      </Modal>
 
       <Modal isOpen={isPaymentOpen} onClose={() => setIsPaymentOpen(false)} title="Record Payment">
         <form onSubmit={paymentForm.handleSubmit(onCreatePayment)} className="flex flex-col gap-4">

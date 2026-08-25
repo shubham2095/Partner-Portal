@@ -44,12 +44,16 @@ export async function getServicePerformance(query) {
 
 const REPORT_HANDLERS = {
   lead: {
-    fetch: analyticsModel.getLeadReport,
+    // "Freelancer-wise lead report" (PDF §22.14.1) is this same report with
+    // an optional ?freelancerId= filter, not a separate report type.
+    fetch: ({ from, to, page, limit, freelancerId }) => analyticsModel.getLeadReport({ from, to, page, limit, freelancerId }),
     columns: ['lead_number', 'client_name', 'mobile', 'status', 'source', 'service_interested', 'assigned_freelancer_name', 'created_at'],
     defaultDays: 30,
   },
   sales: {
-    fetch: analyticsModel.getSalesReport,
+    // Also satisfies "freelancer-wise closed-deal report" (§22.14.3) via the
+    // same freelancerId filter.
+    fetch: ({ from, to, page, limit, freelancerId }) => analyticsModel.getSalesReport({ from, to, page, limit, freelancerId }),
     columns: ['lead_number', 'client_name', 'service_interested', 'conversion_value', 'converted_at', 'freelancer_name'],
     defaultDays: 90,
   },
@@ -64,8 +68,33 @@ const REPORT_HANDLERS = {
     defaultDays: 90,
   },
   commission: {
-    fetch: analyticsModel.getCommissionReport,
+    // Also satisfies "freelancer-wise commission report" (§22.14.4),
+    // "pending commission report" (§22.14.5, ?status=POTENTIAL|EARNED|APPROVED|PAYABLE)
+    // and "paid commission report" (§22.14.6, ?status=PAID) via the same
+    // freelancerId/status filters — not three separate report types.
+    fetch: ({ from, to, page, limit, freelancerId, status }) =>
+      analyticsModel.getCommissionReport({ from, to, page, limit, freelancerId, status }),
     columns: ['id', 'lead_number', 'freelancer_name', 'sale_value', 'commission_amount', 'status', 'approved_at', 'payment_date'],
+    defaultDays: 90,
+  },
+  withdrawal: {
+    fetch: analyticsModel.getWithdrawalReport,
+    columns: ['id', 'freelancer_name', 'partner_id', 'amount', 'status', 'requested_at', 'reviewed_at', 'paid_at', 'transaction_reference'],
+    defaultDays: 90,
+  },
+  'follow-up': {
+    fetch: analyticsModel.getFollowUpReport,
+    columns: ['id', 'lead_number', 'client_name', 'freelancer_name', 'follow_up_type', 'priority', 'status', 'scheduled_at', 'completed_at', 'outcome'],
+    defaultDays: 30,
+  },
+  course: {
+    fetch: async ({ page, limit }) => analyticsModel.getCourseCompletionReport({ page, limit }),
+    columns: ['freelancer_name', 'partner_id', 'training_title', 'status', 'progress_percentage', 'started_at', 'completed_at'],
+    defaultDays: null,
+  },
+  ticket: {
+    fetch: analyticsModel.getTicketReport,
+    columns: ['id', 'ticket_number', 'freelancer_name', 'category', 'priority', 'status', 'assigned_admin_email', 'created_at', 'resolved_at', 'closed_at'],
     defaultDays: 90,
   },
   'lost-leads': {
@@ -108,14 +137,16 @@ export async function getReport(type, query) {
 
   const page = query.page ?? 1
   const limit = query.limit ?? 50
+  const freelancerId = query.freelancerId ? Number(query.freelancerId) : undefined
+  const status = query.status || undefined
 
   if (handler.defaultDays === null) {
-    const { rows, total } = await handler.fetch({ page, limit })
+    const { rows, total } = await handler.fetch({ page, limit, freelancerId, status })
     return { rows, total, page, limit }
   }
 
   const { from, to } = resolveDateRange(query, handler.defaultDays)
-  const { rows, total } = await handler.fetch({ from, to, page, limit })
+  const { rows, total } = await handler.fetch({ from, to, page, limit, freelancerId, status })
   return { rows, total, page, limit, from, to }
 }
 

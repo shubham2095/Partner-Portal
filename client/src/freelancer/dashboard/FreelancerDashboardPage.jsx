@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { Target, Sparkles, CalendarClock, Wallet, GraduationCap, ArrowRight, CalendarCheck2 } from 'lucide-react'
+import { Target, Sparkles, CalendarClock, Wallet, GraduationCap, ArrowRight, CalendarCheck2, AlertTriangle } from 'lucide-react'
 import { StatCard, ChartCard } from '../../components/data-display'
 import { Card, Badge, ProgressBar, ErrorState, EmptyState, Skeleton } from '../../components/ui'
 import { getDashboardSummary } from '../../services/freelancerTrainingService'
 import { getMySummary, getMyPipeline, getMyPerformanceTrend } from '../../services/freelancerAnalyticsService'
+import { listMyFollowUps } from '../../services/freelancerLeadService'
 import { useAuthStore } from '../../store/authStore'
 
 const CHART_COLOR = '#4f46e5'
@@ -40,6 +41,7 @@ export default function FreelancerDashboardPage() {
   const [analyticsSummary, setAnalyticsSummary] = useState(null)
   const [pipeline, setPipeline] = useState(null)
   const [performanceTrend, setPerformanceTrend] = useState(null)
+  const [followUpCounts, setFollowUpCounts] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
 
@@ -47,14 +49,18 @@ export default function FreelancerDashboardPage() {
     setIsLoading(true)
     setHasError(false)
     try {
-      const [summaryData, pipelineData, trendData] = await Promise.all([
+      const [summaryData, pipelineData, trendData, todayFu, overdueFu, upcomingFu] = await Promise.all([
         getMySummary(),
         getMyPipeline(),
         getMyPerformanceTrend({}),
+        listMyFollowUps({ bucket: 'today', limit: 1 }),
+        listMyFollowUps({ bucket: 'overdue', limit: 1 }),
+        listMyFollowUps({ bucket: 'upcoming', limit: 1 }),
       ])
       setAnalyticsSummary(summaryData)
       setPipeline(pipelineData)
       setPerformanceTrend(trendData)
+      setFollowUpCounts({ today: todayFu.meta.total, overdue: overdueFu.meta.total, upcoming: upcomingFu.meta.total })
     } catch (error) {
       setHasError(true)
     } finally {
@@ -97,15 +103,24 @@ export default function FreelancerDashboardPage() {
         </div>
       </div>
 
-      {analyticsSummary.followUpsToday > 0 && (
+      {followUpCounts && (followUpCounts.today > 0 || followUpCounts.overdue > 0) && (
         <Link
-          to="/freelancer/leads"
-          className="flex items-center justify-between gap-3 rounded-lg border border-warning/20 bg-warning-bg px-4 py-3 text-sm text-warning transition-colors hover:bg-warning-bg/70"
+          to="/freelancer/follow-ups"
+          className={`flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm transition-colors ${
+            followUpCounts.overdue > 0
+              ? 'border-danger/20 bg-danger-bg text-danger hover:bg-danger-bg/70'
+              : 'border-warning/20 bg-warning-bg text-warning hover:bg-warning-bg/70'
+          }`}
         >
           <span className="flex items-center gap-2 font-medium">
-            <CalendarCheck2 className="h-4 w-4 shrink-0" strokeWidth={2} />
-            You have {analyticsSummary.followUpsToday} follow-up{analyticsSummary.followUpsToday === 1 ? '' : 's'} due
-            today
+            {followUpCounts.overdue > 0 ? (
+              <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={2} />
+            ) : (
+              <CalendarCheck2 className="h-4 w-4 shrink-0" strokeWidth={2} />
+            )}
+            {followUpCounts.overdue > 0
+              ? `You have ${followUpCounts.overdue} overdue follow-up${followUpCounts.overdue === 1 ? '' : 's'}`
+              : `You have ${followUpCounts.today} follow-up${followUpCounts.today === 1 ? '' : 's'} due today`}
           </span>
           <ArrowRight className="h-4 w-4 shrink-0" strokeWidth={2} />
         </Link>
@@ -150,6 +165,33 @@ export default function FreelancerDashboardPage() {
           )}
         </ChartCard>
       </div>
+
+      {followUpCounts && (
+        <Card className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+              <CalendarClock className="h-4 w-4 text-primary" strokeWidth={2} /> Follow-ups
+            </h3>
+            <Link to="/freelancer/follow-ups" className="text-xs font-medium text-primary hover:underline">
+              View all →
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-md bg-warning-bg p-3">
+              <p className="text-caption">Today</p>
+              <p className="mt-1 text-lg font-bold text-warning">{followUpCounts.today}</p>
+            </div>
+            <div className="rounded-md bg-danger-bg p-3">
+              <p className="text-caption">Overdue</p>
+              <p className="mt-1 text-lg font-bold text-danger">{followUpCounts.overdue}</p>
+            </div>
+            <div className="rounded-md bg-surface-muted p-3">
+              <p className="text-caption">Upcoming</p>
+              <p className="mt-1 text-lg font-bold text-text-primary">{followUpCounts.upcoming}</p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">

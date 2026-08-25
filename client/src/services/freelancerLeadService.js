@@ -5,6 +5,11 @@ export async function listMyLeads(params) {
   return data
 }
 
+export async function createLead(payload) {
+  const { data } = await apiClient.post('/freelancer/leads', payload)
+  return data.data.lead
+}
+
 export async function getMyLeadDetail(id) {
   const { data } = await apiClient.get(`/freelancer/leads/${id}`)
   return data.data.lead
@@ -56,4 +61,16 @@ export async function completeFollowUp(followUpId, outcome, nextFollowUpDate) {
 export async function cancelFollowUp(followUpId) {
   const { data } = await apiClient.post(`/freelancer/leads/followups/${followUpId}/cancel`)
   return data.data.followUp
+}
+
+export async function getMyClosedDeal(leadId) {
+  const { data } = await apiClient.get(`/freelancer/leads/${leadId}/closed-deal`)
+  return data.data.commission
+}
+
+export async function submitClosedDeal(leadId, formData) {
+  const { data } = await apiClient.post(`/freelancer/leads/${leadId}/closed-deal`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data.data.commission
 }

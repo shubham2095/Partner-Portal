@@ -6,6 +6,7 @@ import {
   findLeadById,
   findLeadDetailById,
   findLeadByIdForUpdate,
+  findDuplicateLeadCandidates,
   updateLead as updateLeadModel,
   updateLeadStatus,
   updateLeadAssignment,
@@ -18,6 +19,26 @@ import { generateLeadNumber } from './leadNumberService.js'
 import { assertValidStatusTransition, activityTypeForStatus } from './leadStatusService.js'
 import { logAudit } from './auditService.js'
 import { notify, notifyAdmins } from './notificationService.js'
+import * as followUpService from './followUpService.js'
+import { normalizePhoneDigits, normalizeEmail, withDuplicateCheckLock } from '../utils/leadDuplicateCheck.js'
+
+// Admin already has full visibility into every lead, so a duplicate match
+// can safely surface the same safe reference fields the admin leads list
+// already exposes — no new information is leaked by this response.
+function toDuplicateConflict(candidates) {
+  return {
+    duplicate: true,
+    message: 'A lead with a matching phone number or email already exists.',
+    matches: candidates.map((row) => ({
+      id: row.id,
+      leadNumber: row.lead_number,
+      clientName: row.client_name,
+      company: row.company,
+      status: row.status,
+      assignedFreelancerId: row.assigned_freelancer_id,
+    })),
+  }
+}
 
 const ACTIVITY_TYPES = [
   'PHONE_CALL',
@@ -38,25 +59,62 @@ async function requireLead(id, executor = pool) {
 }
 
 export async function createLead(payload, adminId, req) {
+  const normalizedPhoneDigits = normalizePhoneDigits(payload.mobile)
+  const normalizedEmail = normalizeEmail(payload.email)
+
+  // Optimistic pre-check outside the transaction — gives a fast, friendly
+  // 409 for the common (non-concurrent) case without holding any lock.
+  const precheckCandidates = await findDuplicateLeadCandidates({ normalizedPhoneDigits, normalizedEmail })
+  if (precheckCandidates.length > 0) {
+    throw new ApiError(409, 'Possible duplicate lead detected', toDuplicateConflict(precheckCandidates))
+  }
+
   const connection = await pool.getConnection()
   let leadId
   try {
-    await connection.beginTransaction()
-    leadId = await createLeadModel({ ...payload, createdBy: adminId }, connection)
-    await setLeadNumber(leadId, generateLeadNumber(leadId), connection)
-    await createActivity(
-      { leadId, actorId: adminId, activityType: 'LEAD_CREATED', description: `Lead created: ${payload.clientName}` },
-      connection
-    )
-    await connection.commit()
-  } catch (error) {
-    await connection.rollback()
-    throw error
+    // Authoritative re-check, serialized against any other concurrent
+    // check-then-insert for the same normalized values — see
+    // withDuplicateCheckLock in leadDuplicateCheck.js for why this uses a
+    // MySQL named lock rather than a locking SELECT (no UNIQUE constraint
+    // exists on mobile/email; see migration 0046).
+    await withDuplicateCheckLock(connection, { normalizedPhoneDigits, normalizedEmail }, async () => {
+      await connection.beginTransaction()
+      try {
+        const lockedCandidates = await findDuplicateLeadCandidates({ normalizedPhoneDigits, normalizedEmail }, connection)
+        if (lockedCandidates.length > 0) {
+          throw new ApiError(409, 'Possible duplicate lead detected', toDuplicateConflict(lockedCandidates))
+        }
+
+        leadId = await createLeadModel({ ...payload, createdBy: adminId }, connection)
+        await setLeadNumber(leadId, generateLeadNumber(leadId), connection)
+        await createActivity(
+          { leadId, actorId: adminId, activityType: 'LEAD_CREATED', description: `Lead created: ${payload.clientName}` },
+          connection
+        )
+        await connection.commit()
+      } catch (error) {
+        await connection.rollback()
+        throw error
+      }
+    })
   } finally {
     connection.release()
   }
 
   await logAudit({ actorId: adminId, action: 'LEAD_CREATED', entity: 'lead', entityId: leadId, newValue: payload, req })
+
+  if (payload.nextFollowUpDate) {
+    // Reuses the existing follow-up system end-to-end (ownership rules,
+    // activity timeline, reminder scheduling) rather than duplicating it.
+    await followUpService
+      .createFollowUp(
+        leadId,
+        { scheduledAt: payload.nextFollowUpDate, followUpType: payload.followUpType ?? 'PHONE_CALL' },
+        { isAdmin: true, userId: adminId }
+      )
+      .catch((error) => console.error('[adminLeadService] Failed to create initial follow-up:', error.message))
+  }
+
   return findLeadDetailById(leadId)
 }
 

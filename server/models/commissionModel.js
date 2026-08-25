@@ -1,6 +1,6 @@
 import { pool } from '../config/database.js'
 
-export const COMMISSION_STATUSES = ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID']
+export const COMMISSION_STATUSES = ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID', 'REJECTED']
 
 export async function createCommission(
   {
@@ -12,6 +12,10 @@ export async function createCommission(
     ruleRateValue,
     saleValue,
     commissionAmount,
+    declarationNote,
+    termsAccepted,
+    dealClosingDate,
+    supportingDocumentPath,
     createdBy,
   },
   executor = pool
@@ -19,8 +23,8 @@ export async function createCommission(
   const [result] = await executor.query(
     `INSERT INTO commissions
        (lead_id, freelancer_id, commission_rule_id, rule_service_name, rule_rate_type, rule_rate_value,
-        sale_value, commission_amount, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sale_value, declaration_note, terms_accepted, deal_closing_date, supporting_document_path, commission_amount, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       leadId,
       freelancerId,
@@ -29,11 +33,74 @@ export async function createCommission(
       ruleRateType ?? null,
       ruleRateValue ?? null,
       saleValue,
+      declarationNote ?? null,
+      termsAccepted ? 1 : 0,
+      dealClosingDate ?? null,
+      supportingDocumentPath ?? null,
       commissionAmount,
       createdBy,
     ]
   )
   return result.insertId
+}
+
+// A rejected closed-deal submission is resubmitted onto the SAME row
+// (never a new INSERT) because commissions.lead_id is UNIQUE — one lead can
+// only ever have one commission record, so resubmission must update it back
+// to POTENTIAL rather than create a second one.
+export async function resubmitCommission(
+  id,
+  {
+    commissionRuleId,
+    ruleServiceName,
+    ruleRateType,
+    ruleRateValue,
+    saleValue,
+    commissionAmount,
+    declarationNote,
+    termsAccepted,
+    dealClosingDate,
+    supportingDocumentPath,
+  },
+  executor = pool
+) {
+  await executor.query(
+    `UPDATE commissions
+     SET status = 'POTENTIAL', rejection_reason = NULL,
+         commission_rule_id = ?, rule_service_name = ?, rule_rate_type = ?, rule_rate_value = ?,
+         sale_value = ?, commission_amount = ?, declaration_note = ?, terms_accepted = ?, deal_closing_date = ?,
+         supporting_document_path = ?,
+         client_payment_received_at = NULL, client_payment_confirmed_by = NULL, contract_document_path = NULL
+     WHERE id = ?`,
+    [
+      commissionRuleId ?? null,
+      ruleServiceName ?? null,
+      ruleRateType ?? null,
+      ruleRateValue ?? null,
+      saleValue,
+      commissionAmount,
+      declarationNote ?? null,
+      termsAccepted ? 1 : 0,
+      dealClosingDate ?? null,
+      supportingDocumentPath ?? null,
+      id,
+    ]
+  )
+}
+
+export async function rejectCommission(id, reason, executor = pool) {
+  await executor.query("UPDATE commissions SET status = 'REJECTED', rejection_reason = ? WHERE id = ?", [reason, id])
+}
+
+export async function confirmClientPayment(id, adminId, executor = pool) {
+  await executor.query(
+    'UPDATE commissions SET client_payment_received_at = NOW(), client_payment_confirmed_by = ? WHERE id = ?',
+    [adminId, id]
+  )
+}
+
+export async function setContractDocumentPath(id, relativePath, executor = pool) {
+  await executor.query('UPDATE commissions SET contract_document_path = ? WHERE id = ?', [relativePath, id])
 }
 
 export async function findCommissionById(id, executor = pool) {

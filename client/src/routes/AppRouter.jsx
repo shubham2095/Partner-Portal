@@ -42,10 +42,14 @@ const FreelancerTrainingDetailPage = lazy(() => import('../freelancer/training/T
 const FreelancerLessonPage = lazy(() => import('../freelancer/training/LessonPage'))
 const AdminLeadListPage = lazy(() => import('../admin/leads/LeadListPage'))
 const AdminLeadDetailPage = lazy(() => import('../admin/leads/LeadDetailPage'))
+const AdminFollowUpsPage = lazy(() => import('../admin/followups/FollowUpsPage'))
 const FreelancerLeadListPage = lazy(() => import('../freelancer/leads/LeadListPage'))
 const FreelancerLeadDetailPage = lazy(() => import('../freelancer/leads/LeadDetailPage'))
+const FreelancerFollowUpsPage = lazy(() => import('../freelancer/followups/FollowUpsPage'))
 const AdminCommissionListPage = lazy(() => import('../admin/commissions/CommissionListPage'))
 const AdminCommissionDetailPage = lazy(() => import('../admin/commissions/CommissionDetailPage'))
+const AdminWithdrawalListPage = lazy(() => import('../admin/withdrawals/WithdrawalListPage'))
+const AdminWithdrawalDetailPage = lazy(() => import('../admin/withdrawals/WithdrawalDetailPage'))
 const FreelancerEarningsPage = lazy(() => import('../freelancer/earnings/EarningsPage'))
 const FreelancerCommissionDetailPage = lazy(() => import('../freelancer/earnings/CommissionDetailPage'))
 const AdminIntegrationSettingsPage = lazy(() => import('../admin/integrations/IntegrationSettingsPage'))
@@ -54,6 +58,10 @@ const AdminSalesPage = lazy(() => import('../admin/sales/SalesPage'))
 const AdminSettingsPage = lazy(() => import('../admin/settings/SettingsPage'))
 const FreelancerNotificationsPage = lazy(() => import('../freelancer/notifications/NotificationsPage'))
 const VerifyCertificatePage = lazy(() => import('../public/VerifyCertificatePage'))
+const AdminTicketListPage = lazy(() => import('../admin/tickets/TicketListPage'))
+const AdminTicketDetailPage = lazy(() => import('../admin/tickets/TicketDetailPage'))
+const FreelancerTicketListPage = lazy(() => import('../freelancer/tickets/TicketListPage'))
+const FreelancerTicketDetailPage = lazy(() => import('../freelancer/tickets/TicketDetailPage'))
 
 const router = createBrowserRouter([
   {
@@ -97,8 +105,13 @@ const router = createBrowserRouter([
           { path: 'training/:id', element: <AdminTrainingDetailPage /> },
           { path: 'leads', element: <AdminLeadListPage /> },
           { path: 'leads/:id', element: <AdminLeadDetailPage /> },
+          { path: 'follow-ups', element: <AdminFollowUpsPage /> },
           { path: 'commissions', element: <AdminCommissionListPage /> },
           { path: 'commissions/:id', element: <AdminCommissionDetailPage /> },
+          { path: 'withdrawals', element: <AdminWithdrawalListPage /> },
+          { path: 'withdrawals/:id', element: <AdminWithdrawalDetailPage /> },
+          { path: 'tickets', element: <AdminTicketListPage /> },
+          { path: 'tickets/:id', element: <AdminTicketDetailPage /> },
           { path: 'integrations', element: <AdminIntegrationSettingsPage /> },
           { path: 'reports', element: <AdminReportsPage /> },
           { path: 'sales', element: <AdminSalesPage /> },
@@ -129,9 +142,12 @@ const router = createBrowserRouter([
           { path: 'training/:trainingId/lessons/:lessonId', element: <FreelancerLessonPage /> },
           { path: 'leads', element: <FreelancerLeadListPage /> },
           { path: 'leads/:id', element: <FreelancerLeadDetailPage /> },
+          { path: 'follow-ups', element: <FreelancerFollowUpsPage /> },
           { path: 'commissions', element: <FreelancerEarningsPage /> },
           { path: 'commissions/:id', element: <FreelancerCommissionDetailPage /> },
           { path: 'notifications', element: <FreelancerNotificationsPage /> },
+          { path: 'tickets', element: <FreelancerTicketListPage /> },
+          { path: 'tickets/:id', element: <FreelancerTicketDetailPage /> },
         ],
       },
       {

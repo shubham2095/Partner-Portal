@@ -65,6 +65,34 @@ export const changeCommissionStatus = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: 'Commission status updated', data: { commission } })
 })
 
+export const rejectCommission = asyncHandler(async (req, res) => {
+  const commission = await adminCommissionService.rejectCommission(Number(req.params.id), req.body.reason, req.user.id, req)
+  sendSuccess(res, { message: 'Closed deal rejected', data: { commission } })
+})
+
+export const confirmClientPayment = asyncHandler(async (req, res) => {
+  const commission = await adminCommissionService.confirmClientPayment(Number(req.params.id), req.user.id, req)
+  sendSuccess(res, { message: 'Client payment confirmed', data: { commission } })
+})
+
+export const downloadContract = asyncHandler(async (req, res) => {
+  const { commission } = await adminCommissionService.getCommissionDetail(Number(req.params.id))
+  if (!commission?.contract_document_path) {
+    return res.status(404).json({ success: false, message: 'No contract document available yet', errors: {} })
+  }
+  const absolutePath = path.join(process.cwd(), commission.contract_document_path)
+  res.download(absolutePath, `contract-${commission.id}.pdf`)
+})
+
+export const downloadDealDocument = asyncHandler(async (req, res) => {
+  const { commission } = await adminCommissionService.getCommissionDetail(Number(req.params.id))
+  if (!commission?.supporting_document_path) {
+    return res.status(404).json({ success: false, message: 'No supporting document available', errors: {} })
+  }
+  const absolutePath = path.join(process.cwd(), commission.supporting_document_path)
+  res.download(absolutePath, `deal-document-${commission.id}${path.extname(commission.supporting_document_path)}`)
+})
+
 // Payments
 
 export const createPayment = asyncHandler(async (req, res) => {

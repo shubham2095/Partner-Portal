@@ -18,6 +18,10 @@ import adminLeadRoutes from './adminLead.routes.js'
 import freelancerLeadRoutes from './freelancerLead.routes.js'
 import adminCommissionRoutes from './adminCommission.routes.js'
 import freelancerCommissionRoutes from './freelancerCommission.routes.js'
+import adminWithdrawalRoutes from './adminWithdrawal.routes.js'
+import freelancerWithdrawalRoutes from './freelancerWithdrawal.routes.js'
+import adminTicketRoutes from './adminTicket.routes.js'
+import freelancerTicketRoutes from './freelancerTicket.routes.js'
 import notificationRoutes from './notification.routes.js'
 import adminIntegrationRoutes from './adminIntegration.routes.js'
 import webhookRoutes from './webhook.routes.js'
@@ -44,6 +48,10 @@ router.use('/admin/leads', adminLeadRoutes)
 router.use('/freelancer/leads', freelancerLeadRoutes)
 router.use('/admin/commissions', adminCommissionRoutes)
 router.use('/freelancer/commissions', freelancerCommissionRoutes)
+router.use('/admin/withdrawals', adminWithdrawalRoutes)
+router.use('/freelancer/withdrawals', freelancerWithdrawalRoutes)
+router.use('/admin/tickets', adminTicketRoutes)
+router.use('/freelancer/tickets', freelancerTicketRoutes)
 router.use('/notifications', notificationRoutes)
 router.use('/admin/integrations', adminIntegrationRoutes)
 router.use('/webhooks', webhookRoutes)

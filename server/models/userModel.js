@@ -33,3 +33,10 @@ export async function setUserActiveStatus(id, isActive, executor = pool) {
 export async function updatePasswordHash(id, passwordHash, executor = pool) {
   await executor.query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id])
 }
+
+export async function listAdminUsers(executor = pool) {
+  const [rows] = await executor.query(
+    "SELECT id, email, role FROM users WHERE role IN ('ADMIN','SUPER_ADMIN') AND is_active = 1 ORDER BY email ASC"
+  )
+  return rows
+}
