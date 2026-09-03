@@ -19,6 +19,7 @@ import {
   createEmailVerificationToken,
   findValidEmailVerificationToken,
   markEmailVerificationTokenUsed,
+  invalidateEmailVerificationTokensForUser,
 } from '../models/emailVerificationTokenModel.js'
 import {
   createPasswordResetToken,
@@ -73,12 +74,40 @@ export async function registerFreelancer({ email, password, fullName, mobile }) 
     token: verificationToken,
     expiresAt: addHours(EMAIL_VERIFICATION_EXPIRY_HOURS),
   })
-  await sendVerificationEmail(email, verificationToken)
+  // A transient mail failure must not roll back a completed signup — the user
+  // can request a fresh link from the "check your inbox" screen.
+  try {
+    await sendVerificationEmail(email, verificationToken)
+  } catch (error) {
+    console.error('[auth] verification email failed to send', error)
+  }
 
   const user = await findUserById(userId)
-  const token = signAccessToken(user)
+  // No access token here: the account is created but unverified. The user must
+  // click the emailed link before they can log in.
+  return { user: toPublicUser(user) }
+}
 
-  return { user: toPublicUser(user), token }
+export async function resendVerificationEmail(email) {
+  const user = await findUserByEmail(email)
+  // Respond identically whether or not the account exists / is already verified,
+  // so this endpoint can't be used to enumerate registered emails.
+  if (!user || user.role !== 'FREELANCER' || user.email_verified_at) {
+    return
+  }
+
+  await invalidateEmailVerificationTokensForUser(user.id)
+  const verificationToken = generateRandomToken()
+  await createEmailVerificationToken({
+    userId: user.id,
+    token: verificationToken,
+    expiresAt: addHours(EMAIL_VERIFICATION_EXPIRY_HOURS),
+  })
+  try {
+    await sendVerificationEmail(email, verificationToken)
+  } catch (error) {
+    console.error('[auth] resend verification email failed', error)
+  }
 }
 
 export async function loginUser({ email, password, allowedRoles, req }) {
@@ -98,6 +127,14 @@ export async function loginUser({ email, password, allowedRoles, req }) {
 
   if (!user.is_active) {
     throw new ApiError(403, 'Your account has been suspended. Please contact support.')
+  }
+
+  // Partners must confirm they own the email address before they can sign in.
+  // Admins are provisioned internally and are exempt.
+  if (user.role === 'FREELANCER' && !user.email_verified_at) {
+    throw new ApiError(403, 'Please verify your email address — check your inbox for the link.', {
+      code: 'EMAIL_NOT_VERIFIED',
+    })
   }
 
   await updateLastLogin(user.id)

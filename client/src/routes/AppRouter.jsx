@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { PublicLayout, AuthLayout, AdminLayout, FreelancerLayout } from '../layouts'
 import ProtectedRoute from './ProtectedRoute'
+import RouteError from '../components/RouteError'
 
 // Route-level code splitting: each page is its own chunk, loaded on first
 // visit rather than bundled into the initial payload. The layouts render
@@ -62,98 +63,107 @@ const AdminTicketListPage = lazy(() => import('../admin/tickets/TicketListPage')
 const AdminTicketDetailPage = lazy(() => import('../admin/tickets/TicketDetailPage'))
 const FreelancerTicketListPage = lazy(() => import('../freelancer/tickets/TicketListPage'))
 const FreelancerTicketDetailPage = lazy(() => import('../freelancer/tickets/TicketDetailPage'))
+const NotFoundPage = lazy(() => import('../public/NotFoundPage'))
 
 const router = createBrowserRouter([
   {
-    element: <PublicLayout />,
-    children: [
-      { path: '/', element: <LandingPage /> },
-      { path: '/verify', element: <VerifyCertificatePage /> },
-      { path: '/verify/:certificateNumber', element: <VerifyCertificatePage /> },
-    ],
-  },
-  {
-    path: '/auth',
-    element: <AuthLayout />,
-    children: [
-      { path: 'login', element: <LoginPage /> },
-      { path: 'register', element: <RegisterPage /> },
-      { path: 'admin-login', element: <AdminLoginPage /> },
-      { path: 'verify-email', element: <VerifyEmailPage /> },
-      { path: 'forgot-password', element: <ForgotPasswordPage /> },
-      { path: 'reset-password', element: <ResetPasswordPage /> },
-    ],
-  },
-  {
-    element: <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']} />,
+    // App-wide error boundary: any render/loader error or unmatched route
+    // renders <RouteError /> instead of a blank white screen.
+    errorElement: <RouteError />,
     children: [
       {
-        path: '/admin',
-        element: <AdminLayout />,
+        element: <PublicLayout />,
         children: [
-          { path: 'dashboard', element: <AdminDashboardPage /> },
-          { path: 'freelancers', element: <FreelancerListPage /> },
-          { path: 'freelancers/:id', element: <FreelancerDetailPage /> },
-          { path: 'webinars', element: <AdminWebinarListPage /> },
-          { path: 'webinars/:id', element: <AdminWebinarDetailPage /> },
-          { path: 'questions', element: <AdminQuestionListPage /> },
-          { path: 'tests', element: <AdminTestListPage /> },
-          { path: 'tests/:id', element: <AdminTestDetailPage /> },
-          { path: 'certificates', element: <AdminCertificateListPage /> },
-          { path: 'certificates/:id', element: <AdminCertificateDetailPage /> },
-          { path: 'training', element: <AdminTrainingListPage /> },
-          { path: 'training/:id', element: <AdminTrainingDetailPage /> },
-          { path: 'leads', element: <AdminLeadListPage /> },
-          { path: 'leads/:id', element: <AdminLeadDetailPage /> },
-          { path: 'follow-ups', element: <AdminFollowUpsPage /> },
-          { path: 'commissions', element: <AdminCommissionListPage /> },
-          { path: 'commissions/:id', element: <AdminCommissionDetailPage /> },
-          { path: 'withdrawals', element: <AdminWithdrawalListPage /> },
-          { path: 'withdrawals/:id', element: <AdminWithdrawalDetailPage /> },
-          { path: 'tickets', element: <AdminTicketListPage /> },
-          { path: 'tickets/:id', element: <AdminTicketDetailPage /> },
-          { path: 'integrations', element: <AdminIntegrationSettingsPage /> },
-          { path: 'reports', element: <AdminReportsPage /> },
-          { path: 'sales', element: <AdminSalesPage /> },
-          { path: 'settings', element: <AdminSettingsPage /> },
-        ],
-      },
-    ],
-  },
-  {
-    element: <ProtectedRoute allowedRoles={['FREELANCER']} />,
-    children: [
-      {
-        path: '/freelancer',
-        element: <FreelancerLayout />,
-        children: [
-          { path: 'dashboard', element: <FreelancerDashboardPage /> },
-          { path: 'profile', element: <FreelancerProfilePage /> },
-          { path: 'documents', element: <FreelancerDocumentsPage /> },
-          { path: 'webinars', element: <FreelancerWebinarListPage /> },
-          { path: 'webinars/:id', element: <FreelancerWebinarDetailPage /> },
-          { path: 'tests', element: <FreelancerTestListPage /> },
-          { path: 'tests/:id', element: <FreelancerTestInstructionsPage /> },
-          { path: 'certificates', element: <FreelancerCertificateListPage /> },
-          { path: 'certificates/:id', element: <FreelancerCertificateDetailPage /> },
-          { path: 'attempts/:id/result', element: <FreelancerTestResultPage /> },
-          { path: 'training', element: <FreelancerTrainingListPage /> },
-          { path: 'training/:id', element: <FreelancerTrainingDetailPage /> },
-          { path: 'training/:trainingId/lessons/:lessonId', element: <FreelancerLessonPage /> },
-          { path: 'leads', element: <FreelancerLeadListPage /> },
-          { path: 'leads/:id', element: <FreelancerLeadDetailPage /> },
-          { path: 'follow-ups', element: <FreelancerFollowUpsPage /> },
-          { path: 'commissions', element: <FreelancerEarningsPage /> },
-          { path: 'commissions/:id', element: <FreelancerCommissionDetailPage /> },
-          { path: 'notifications', element: <FreelancerNotificationsPage /> },
-          { path: 'tickets', element: <FreelancerTicketListPage /> },
-          { path: 'tickets/:id', element: <FreelancerTicketDetailPage /> },
+          { path: '/', element: <LandingPage /> },
+          { path: '/verify', element: <VerifyCertificatePage /> },
+          { path: '/verify/:certificateNumber', element: <VerifyCertificatePage /> },
         ],
       },
       {
-        path: '/freelancer/attempts/:id',
-        element: <FreelancerTestAttemptPage />,
+        path: '/auth',
+        element: <AuthLayout />,
+        children: [
+          { path: 'login', element: <LoginPage /> },
+          { path: 'register', element: <RegisterPage /> },
+          { path: 'admin-login', element: <AdminLoginPage /> },
+          { path: 'verify-email', element: <VerifyEmailPage /> },
+          { path: 'forgot-password', element: <ForgotPasswordPage /> },
+          { path: 'reset-password', element: <ResetPasswordPage /> },
+        ],
       },
+      {
+        element: <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']} />,
+        children: [
+          {
+            path: '/admin',
+            element: <AdminLayout />,
+            children: [
+              { path: 'dashboard', element: <AdminDashboardPage /> },
+              { path: 'freelancers', element: <FreelancerListPage /> },
+              { path: 'freelancers/:id', element: <FreelancerDetailPage /> },
+              { path: 'webinars', element: <AdminWebinarListPage /> },
+              { path: 'webinars/:id', element: <AdminWebinarDetailPage /> },
+              { path: 'questions', element: <AdminQuestionListPage /> },
+              { path: 'tests', element: <AdminTestListPage /> },
+              { path: 'tests/:id', element: <AdminTestDetailPage /> },
+              { path: 'certificates', element: <AdminCertificateListPage /> },
+              { path: 'certificates/:id', element: <AdminCertificateDetailPage /> },
+              { path: 'training', element: <AdminTrainingListPage /> },
+              { path: 'training/:id', element: <AdminTrainingDetailPage /> },
+              { path: 'leads', element: <AdminLeadListPage /> },
+              { path: 'leads/:id', element: <AdminLeadDetailPage /> },
+              { path: 'follow-ups', element: <AdminFollowUpsPage /> },
+              { path: 'commissions', element: <AdminCommissionListPage /> },
+              { path: 'commissions/:id', element: <AdminCommissionDetailPage /> },
+              { path: 'withdrawals', element: <AdminWithdrawalListPage /> },
+              { path: 'withdrawals/:id', element: <AdminWithdrawalDetailPage /> },
+              { path: 'tickets', element: <AdminTicketListPage /> },
+              { path: 'tickets/:id', element: <AdminTicketDetailPage /> },
+              { path: 'integrations', element: <AdminIntegrationSettingsPage /> },
+              { path: 'reports', element: <AdminReportsPage /> },
+              { path: 'sales', element: <AdminSalesPage /> },
+              { path: 'settings', element: <AdminSettingsPage /> },
+            ],
+          },
+        ],
+      },
+      {
+        element: <ProtectedRoute allowedRoles={['FREELANCER']} />,
+        children: [
+          {
+            path: '/freelancer',
+            element: <FreelancerLayout />,
+            children: [
+              { path: 'dashboard', element: <FreelancerDashboardPage /> },
+              { path: 'profile', element: <FreelancerProfilePage /> },
+              { path: 'documents', element: <FreelancerDocumentsPage /> },
+              { path: 'webinars', element: <FreelancerWebinarListPage /> },
+              { path: 'webinars/:id', element: <FreelancerWebinarDetailPage /> },
+              { path: 'tests', element: <FreelancerTestListPage /> },
+              { path: 'tests/:id', element: <FreelancerTestInstructionsPage /> },
+              { path: 'certificates', element: <FreelancerCertificateListPage /> },
+              { path: 'certificates/:id', element: <FreelancerCertificateDetailPage /> },
+              { path: 'attempts/:id/result', element: <FreelancerTestResultPage /> },
+              { path: 'training', element: <FreelancerTrainingListPage /> },
+              { path: 'training/:id', element: <FreelancerTrainingDetailPage /> },
+              { path: 'training/:trainingId/lessons/:lessonId', element: <FreelancerLessonPage /> },
+              { path: 'leads', element: <FreelancerLeadListPage /> },
+              { path: 'leads/:id', element: <FreelancerLeadDetailPage /> },
+              { path: 'follow-ups', element: <FreelancerFollowUpsPage /> },
+              { path: 'commissions', element: <FreelancerEarningsPage /> },
+              { path: 'commissions/:id', element: <FreelancerCommissionDetailPage /> },
+              { path: 'notifications', element: <FreelancerNotificationsPage /> },
+              { path: 'tickets', element: <FreelancerTicketListPage /> },
+              { path: 'tickets/:id', element: <FreelancerTicketDetailPage /> },
+            ],
+          },
+          {
+            path: '/freelancer/attempts/:id',
+            element: <FreelancerTestAttemptPage />,
+          },
+        ],
+      },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])

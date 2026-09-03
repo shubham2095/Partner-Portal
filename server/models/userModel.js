@@ -1,11 +1,23 @@
 import { pool } from '../config/database.js'
 
-export async function createUser({ email, passwordHash, role }, executor = pool) {
+export async function createUser(
+  { email, passwordHash = null, role, authProvider = 'LOCAL', googleSub = null },
+  executor = pool
+) {
   const [result] = await executor.query(
-    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)',
-    [email, passwordHash, role]
+    'INSERT INTO users (email, password_hash, role, auth_provider, google_sub) VALUES (?, ?, ?, ?, ?)',
+    [email, passwordHash, role, authProvider, googleSub]
   )
   return result.insertId
+}
+
+export async function findUserByGoogleSub(googleSub, executor = pool) {
+  const [rows] = await executor.query('SELECT * FROM users WHERE google_sub = ? LIMIT 1', [googleSub])
+  return rows[0] ?? null
+}
+
+export async function linkGoogleSub(userId, googleSub, executor = pool) {
+  await executor.query('UPDATE users SET google_sub = ? WHERE id = ?', [googleSub, userId])
 }
 
 export async function findUserByEmail(email, executor = pool) {

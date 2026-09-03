@@ -34,14 +34,14 @@ export default function AdminLoginPage() {
         id="email"
         label="Email"
         type="email"
-        placeholder="admin@example.com"
+        placeholder="you@heltog.com"
         error={errors.email?.message}
         {...register('email', { required: 'Email is required' })}
       />
       <PasswordInput
         id="password"
         label="Password"
-        placeholder="********"
+        placeholder="Enter your password"
         autoComplete="current-password"
         error={errors.password?.message}
         {...register('password', { required: 'Password is required' })}

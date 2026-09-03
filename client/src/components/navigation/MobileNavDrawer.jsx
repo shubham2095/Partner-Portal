@@ -37,7 +37,7 @@ export default function MobileNavDrawer({ items = [], title = 'Partner Portal' }
     >
       <div
         className={cn(
-          'absolute inset-0 bg-black/40 transition-opacity duration-200',
+          'absolute inset-0 bg-secondary/50 backdrop-blur-[2px] transition-opacity duration-200',
           isOpen ? 'opacity-100' : 'opacity-0'
         )}
         onClick={closeMobileNav}
@@ -49,24 +49,24 @@ export default function MobileNavDrawer({ items = [], title = 'Partner Portal' }
         aria-label={`${title} navigation`}
         tabIndex={-1}
         className={cn(
-          'absolute inset-y-0 left-0 flex w-72 max-w-[80vw] flex-col bg-surface shadow-elevated transition-transform duration-200 focus:outline-none',
+          'absolute inset-y-0 left-0 flex w-72 max-w-[82vw] flex-col bg-surface shadow-elevated transition-transform duration-200 ease-smooth focus:outline-none',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
           <img src="/heltog-logo.webp" alt="Heltog Technologies" className="h-7 w-auto" />
           <button
             onClick={closeMobileNav}
-            className="rounded-md p-1.5 text-text-secondary hover:bg-surface-muted hover:text-text-primary focus-ring"
+            className="rounded-lg p-1.5 text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary focus-ring-visible"
             aria-label="Close navigation"
           >
             <X className="h-5 w-5" strokeWidth={2} />
           </button>
         </div>
-        <nav className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto p-3">
+        <nav className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
           {items.map((item) =>
             item.section ? (
-              <div key={`section-${item.section}`} className="px-3 pb-1 pt-4 text-caption first:pt-1">
+              <div key={`section-${item.section}`} className="px-3 pb-1.5 pt-5 text-caption first:pt-1">
                 {item.section}
               </div>
             ) : (
@@ -76,15 +76,25 @@ export default function MobileNavDrawer({ items = [], title = 'Partner Portal' }
                 onClick={closeMobileNav}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                     isActive
                       ? 'bg-primary-50 text-primary'
                       : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary'
                   )
                 }
               >
-                {item.icon && <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />}
-                <span className="truncate">{item.label}</span>
+                {({ isActive }) => (
+                  <>
+                    <span
+                      className={cn(
+                        'absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary transition-opacity',
+                        isActive ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    {item.icon && <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />}
+                    <span className="truncate">{item.label}</span>
+                  </>
+                )}
               </NavLink>
             )
           )}

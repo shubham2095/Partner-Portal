@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { X } from 'lucide-react'
 import { cn } from '../../utils/cn'
 
 /**
@@ -61,7 +62,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
         {isOpen && [
           <motion.div
             key="backdrop"
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-secondary/50 backdrop-blur-[2px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -75,19 +76,33 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
             tabIndex={-1}
-            className="relative z-10 w-full max-w-lg rounded-lg bg-surface p-6 shadow-card focus:outline-none"
+            className="relative z-10 flex max-h-[calc(100vh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-surface shadow-elevated ring-1 ring-black/5 focus:outline-none"
             initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ duration: 0.15 }}
           >
             {title && (
-              <h3 id={titleId} className="mb-4 text-lg font-semibold text-text-primary">
-                {title}
-              </h3>
+              <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-6 py-4">
+                <h3 id={titleId} className="text-base font-semibold text-text-primary">
+                  {title}
+                </h3>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close dialog"
+                  className="-mr-1.5 -mt-0.5 rounded-md p-1 text-text-muted transition-colors hover:bg-surface-muted hover:text-text-primary focus-ring-visible"
+                >
+                  <X className="h-[18px] w-[18px]" strokeWidth={2} />
+                </button>
+              </div>
             )}
-            <div>{children}</div>
-            {footer && <div className="mt-6 flex justify-end gap-2">{footer}</div>}
+            <div className="scrollbar-thin flex-1 overflow-y-auto px-6 py-5">{children}</div>
+            {footer && (
+              <div className="flex shrink-0 justify-end gap-2 border-t border-border bg-surface-muted/40 px-6 py-4">
+                {footer}
+              </div>
+            )}
           </motion.div>,
         ]}
       </AnimatePresence>

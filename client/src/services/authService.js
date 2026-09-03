@@ -15,6 +15,11 @@ export async function loginAdmin(payload) {
   return data.data
 }
 
+export async function loginWithGoogle(idToken) {
+  const { data } = await apiClient.post('/auth/google', { idToken })
+  return data.data
+}
+
 export async function fetchCurrentUser() {
   const { data } = await apiClient.get('/auth/me')
   return data.data.user
@@ -26,6 +31,11 @@ export async function logoutUser() {
 
 export async function verifyEmail(token) {
   const { data } = await apiClient.post('/auth/verify-email', { token })
+  return data
+}
+
+export async function resendVerification(email) {
+  const { data } = await apiClient.post('/auth/resend-verification', { email })
   return data
 }
 

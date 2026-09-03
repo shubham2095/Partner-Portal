@@ -12,11 +12,17 @@ function limiter({ windowMs, max, message }) {
 }
 
 // Applied globally to /api — generous baseline so normal application usage
-// (dashboards, polling, pagination) is never throttled.
+// (dashboards, polling, pagination) is never throttled. An authenticated SPA
+// page load fans out to ~15 requests, so this ceiling must be high enough for
+// a real browsing session while still stopping scrapers/abuse. Tune via
+// RATE_LIMIT_MAX_REQUESTS in the environment.
+// Skipped entirely outside production (dev double-renders inflate counts) and
+// for the health endpoint (uptime pingers hit it constantly).
 export const generalLimiter = limiter({
   windowMs: env.rateLimit.windowMs,
   max: env.rateLimit.maxRequests,
   message: 'Too many requests. Please try again later.',
+  skip: (req) => !env.isProduction || req.path === '/health',
 })
 
 // Tighter limit on credential-guessing surfaces (login, register, password

@@ -1,7 +1,7 @@
 export default function PageHeader({ title, description, actions }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
+    <div className="flex flex-col gap-3 pb-1 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
         <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">{title}</h1>
         {description && <p className="mt-1 text-sm text-text-secondary">{description}</p>}
       </div>

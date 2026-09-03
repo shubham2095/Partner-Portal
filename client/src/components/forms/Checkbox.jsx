@@ -3,12 +3,19 @@ import { cn } from '../../utils/cn'
 
 const Checkbox = forwardRef(function Checkbox({ label, className, id, ...props }, ref) {
   return (
-    <label htmlFor={id} className="flex items-center gap-2 text-sm text-text-primary">
+    <label
+      htmlFor={id}
+      className="inline-flex cursor-pointer items-center gap-2.5 text-sm text-text-primary select-none"
+    >
       <input
         id={id}
         ref={ref}
         type="checkbox"
-        className={cn('h-4 w-4 rounded border-border text-primary focus-ring', className)}
+        className={cn(
+          'h-4 w-4 rounded border-border-strong text-primary transition-shadow',
+          'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-1',
+          className
+        )}
         {...props}
       />
       {label}

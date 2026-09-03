@@ -10,11 +10,44 @@ function getTransporter() {
     transporter = nodemailer.createTransport({
       host: env.smtp.host,
       port: env.smtp.port,
+      // 465 = implicit TLS; 587/25 = STARTTLS upgrade.
+      secure: env.smtp.port === 465,
+      requireTLS: env.smtp.port === 587,
       auth: env.smtp.user ? { user: env.smtp.user, pass: env.smtp.password } : undefined,
     })
   }
 
   return transporter
+}
+
+// True when real SMTP credentials are present — lets callers decide whether
+// to hard-require a delivered email (e.g. block signup) or stay lenient.
+export function isEmailConfigured() {
+  return Boolean(env.smtp.host)
+}
+
+function brandedEmail(title, bodyHtml, cta) {
+  return `
+  <div style="font-family:Inter,Segoe UI,Arial,sans-serif;background:#f6f6fb;padding:32px">
+    <div style="max-width:480px;margin:0 auto;background:#fff;border:1px solid #e8e7f0;border-radius:16px;overflow:hidden">
+      <div style="height:4px;background:linear-gradient(90deg,#7c3aed,#d946ef,#f97316)"></div>
+      <div style="padding:28px 28px 8px">
+        <p style="margin:0 0 4px;font-weight:700;color:#7c3aed;font-size:13px;letter-spacing:.04em">HELTOG PARTNER PORTAL</p>
+        <h1 style="margin:0 0 12px;font-size:20px;color:#1c1b29">${title}</h1>
+        <div style="font-size:14px;line-height:1.6;color:#565469">${bodyHtml}</div>
+        ${
+          cta
+            ? `<p style="margin:22px 0 8px"><a href="${cta.url}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:10px">${cta.label}</a></p>
+               <p style="margin:12px 0 0;font-size:12px;color:#9997a8;word-break:break-all">Or paste this link: ${cta.url}</p>`
+            : ''
+        }
+      </div>
+      <div style="padding:16px 28px;border-top:1px solid #e8e7f0;font-size:11px;color:#9997a8">
+        You’re receiving this because someone used this address on the Heltog Partner Portal.
+        If that wasn’t you, you can ignore this email.
+      </div>
+    </div>
+  </div>`
 }
 
 export async function sendEmail({ to, subject, html }) {
@@ -38,7 +71,11 @@ export async function sendVerificationEmail(email, token) {
   await sendEmail({
     to: email,
     subject: 'Verify your email address',
-    html: `<p>Please verify your email by clicking <a href="${verifyUrl}">this link</a>.</p>`,
+    html: brandedEmail(
+      'Confirm your email address',
+      '<p>Thanks for signing up as a partner. Confirm this is your email address to activate your account. This link expires in 48 hours.</p>',
+      { url: verifyUrl, label: 'Verify email address' }
+    ),
   })
 }
 
@@ -47,7 +84,11 @@ export async function sendPasswordResetEmail(email, token) {
   await sendEmail({
     to: email,
     subject: 'Reset your password',
-    html: `<p>Reset your password by clicking <a href="${resetUrl}">this link</a>.</p>`,
+    html: brandedEmail(
+      'Reset your password',
+      '<p>We received a request to reset your password. This link expires in 1 hour. If you didn’t request this, ignore this email.</p>',
+      { url: resetUrl, label: 'Reset password' }
+    ),
   })
 }
 

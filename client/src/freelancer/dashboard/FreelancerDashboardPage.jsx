@@ -9,12 +9,12 @@ import { getMySummary, getMyPipeline, getMyPerformanceTrend } from '../../servic
 import { listMyFollowUps } from '../../services/freelancerLeadService'
 import { useAuthStore } from '../../store/authStore'
 
-const CHART_COLOR = '#4f46e5'
-const CHART_COLOR_SUCCESS = '#16a34a'
-const AXIS_STYLE = { fontSize: 12, fill: '#94a3b8' }
+const CHART_COLOR = '#7c3aed'
+const CHART_COLOR_SUCCESS = '#059669'
+const AXIS_STYLE = { fontSize: 12, fill: '#9997a8' }
 const TOOLTIP_STYLE = {
-  contentStyle: { borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13 },
-  labelStyle: { color: '#0f172a', fontWeight: 600 },
+  contentStyle: { borderRadius: 8, border: '1px solid #e8e7f0', fontSize: 13 },
+  labelStyle: { color: '#1c1b29', fontWeight: 600 },
 }
 
 function formatCurrency(value) {
@@ -139,7 +139,7 @@ export default function FreelancerDashboardPage() {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={pipeline} layout="vertical" margin={{ left: -12 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e8e7f0" horizontal={false} />
                 <XAxis type="number" allowDecimals={false} tick={AXIS_STYLE} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="status" width={116} tick={{ ...AXIS_STYLE, fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip {...TOOLTIP_STYLE} />
@@ -155,8 +155,8 @@ export default function FreelancerDashboardPage() {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={performanceTrend.series} margin={{ left: -12 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                <XAxis dataKey="date" tick={AXIS_STYLE} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e8e7f0" vertical={false} />
+                <XAxis dataKey="date" tick={AXIS_STYLE} axisLine={{ stroke: '#e8e7f0' }} tickLine={false} />
                 <YAxis allowDecimals={false} tick={AXIS_STYLE} axisLine={false} tickLine={false} />
                 <Tooltip {...TOOLTIP_STYLE} />
                 <Line type="monotone" dataKey="converted" name="Converted" stroke={CHART_COLOR_SUCCESS} strokeWidth={2.5} dot={false} />

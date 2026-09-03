@@ -11,26 +11,26 @@ export default function Sidebar({ items = [], title = 'Partner Portal' }) {
   return (
     <aside
       className={cn(
-        'flex flex-col border-e border-border bg-surface transition-all duration-200',
-        isSidebarOpen ? 'w-60' : 'w-16'
+        'flex flex-col border-e border-border bg-surface transition-[width] duration-200 ease-smooth',
+        isSidebarOpen ? 'w-64' : 'w-[68px]'
       )}
     >
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
+      <div className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
         {isSidebarOpen ? (
           <img src="/heltog-logo.webp" alt="Heltog Technologies" className="h-7 w-auto" />
         ) : (
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-sm font-bold text-white shadow-xs">
             {title[0]}
           </div>
         )}
       </div>
-      <nav className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto p-3">
+      <nav className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
         {items.map((item) =>
           item.section ? (
             <div
               key={`section-${item.section}`}
               className={cn(
-                'px-3 pb-1 pt-4 text-caption first:pt-1',
+                'px-3 pb-1.5 pt-5 text-caption first:pt-1',
                 !isSidebarOpen && 'sr-only'
               )}
             >
@@ -43,15 +43,31 @@ export default function Sidebar({ items = [], title = 'Partner Portal' }) {
               title={!isSidebarOpen ? item.label : undefined}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                  !isSidebarOpen && 'justify-center',
                   isActive
                     ? 'bg-primary-50 text-primary'
                     : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary'
                 )
               }
             >
-              {item.icon && <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />}
-              {isSidebarOpen && <span className="truncate">{item.label}</span>}
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={cn(
+                      'absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary transition-opacity duration-150',
+                      isActive ? 'opacity-100' : 'opacity-0'
+                    )}
+                  />
+                  {item.icon && (
+                    <item.icon
+                      className={cn('h-[18px] w-[18px] shrink-0 transition-colors', isActive && 'text-primary')}
+                      strokeWidth={2}
+                    />
+                  )}
+                  {isSidebarOpen && <span className="truncate">{item.label}</span>}
+                </>
+              )}
             </NavLink>
           )
         )}

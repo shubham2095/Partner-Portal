@@ -1,15 +1,23 @@
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { sendSuccess } from '../utils/apiResponse.js'
 import * as authService from '../services/authService.js'
+import { loginWithGoogle } from '../services/googleAuthService.js'
 import { logAudit } from '../services/auditService.js'
 
 export const register = asyncHandler(async (req, res) => {
   const { email, password, fullName, mobile } = req.body
-  const { user, token } = await authService.registerFreelancer({ email, password, fullName, mobile })
+  const { user } = await authService.registerFreelancer({ email, password, fullName, mobile })
   sendSuccess(res, {
     statusCode: 201,
-    message: 'Registration successful. Please check your email to verify your account.',
-    data: { user, token },
+    message: 'Account created. Check your email for a verification link to activate it.',
+    data: { email: user.email },
+  })
+})
+
+export const resendVerification = asyncHandler(async (req, res) => {
+  await authService.resendVerificationEmail(req.body.email)
+  sendSuccess(res, {
+    message: 'If that account exists and is not yet verified, a new link has been sent.',
   })
 })
 
@@ -27,6 +35,12 @@ export const adminLogin = asyncHandler(async (req, res) => {
     allowedRoles: ['ADMIN', 'SUPER_ADMIN'],
     req,
   })
+  sendSuccess(res, { message: 'Login successful', data: { user, token } })
+})
+
+export const googleLogin = asyncHandler(async (req, res) => {
+  const { idToken } = req.body
+  const { user, token } = await loginWithGoogle(idToken, req)
   sendSuccess(res, { message: 'Login successful', data: { user, token } })
 })
 

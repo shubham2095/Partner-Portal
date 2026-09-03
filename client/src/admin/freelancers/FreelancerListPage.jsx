@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
+import { Link, useNavigate } from 'react-router-dom'
+import { Table, Pagination, SearchBar, FilterBar, StatusChips } from '../../components/data-display'
 import Select from '../../components/forms/Select'
 import Badge from '../../components/ui/Badge'
 import ErrorState from '../../components/ui/ErrorState'
@@ -31,9 +31,30 @@ const STATUS_VARIANTS = {
   INACTIVE: 'default',
 }
 
+// Status chips shown as a quick-filter strip (with live counts).
+const CHIP_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'VERIFIED', label: 'Verified' },
+  { value: 'CERTIFIED', label: 'Certified' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'SUSPENDED', label: 'Suspended' },
+]
+
 const LIMIT = 20
 
+async function countByStatus(status) {
+  const res = await listFreelancers({ status: status || undefined, page: 1, limit: 1 })
+  return res?.meta?.total ?? 0
+}
+
+function formatDate(value) {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 export default function FreelancerListPage() {
+  const navigate = useNavigate()
   const [freelancers, setFreelancers] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -83,34 +104,54 @@ export default function FreelancerListPage() {
       key: 'full_name',
       header: 'Freelancer',
       render: (row) => (
-        <div className="flex items-center gap-2">
-          <Avatar name={row.full_name} size={28} />
-          <div>
-            <p className="font-medium text-text-primary">{row.full_name}</p>
+        <div className="flex items-center gap-2.5">
+          <Avatar name={row.full_name} size={34} />
+          <div className="min-w-0">
+            <p className="truncate font-medium text-text-primary">{row.full_name}</p>
             <p className="text-xs text-text-muted">{row.partner_id ?? 'Pending ID'}</p>
           </div>
         </div>
       ),
     },
-    { key: 'email', header: 'Email' },
-    { key: 'mobile', header: 'Mobile' },
+    {
+      key: 'email',
+      header: 'Contact',
+      render: (row) => (
+        <div className="min-w-0">
+          <p className="truncate text-text-primary">{row.email}</p>
+          <p className="text-xs text-text-muted">{row.mobile || '—'}</p>
+        </div>
+      ),
+    },
+    { key: 'location', header: 'Location', render: (row) => row.location || '—' },
     {
       key: 'status',
       header: 'Status',
-      render: (row) => <Badge variant={STATUS_VARIANTS[row.status] ?? 'default'}>{row.status}</Badge>,
+      render: (row) => (
+        <Badge variant={STATUS_VARIANTS[row.status] ?? 'default'} dot>
+          {row.status}
+        </Badge>
+      ),
     },
     {
       key: 'is_active',
       header: 'Account',
       render: (row) => (
-        <Badge variant={row.is_active ? 'success' : 'danger'}>{row.is_active ? 'Active' : 'Suspended'}</Badge>
+        <Badge variant={row.is_active ? 'success' : 'danger'} dot>
+          {row.is_active ? 'Active' : 'Suspended'}
+        </Badge>
       ),
     },
+    { key: 'created_at', header: 'Joined', render: (row) => formatDate(row.created_at) },
     {
       key: 'actions',
       header: '',
       render: (row) => (
-        <Link to={`/admin/freelancers/${row.id}`} className="text-sm text-primary hover:underline">
+        <Link
+          to={`/admin/freelancers/${row.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="text-sm font-medium text-primary hover:underline"
+        >
           View
         </Link>
       ),
@@ -120,11 +161,31 @@ export default function FreelancerListPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="Freelancers" description="Review, verify, and manage freelancer accounts." />
+
+      <StatusChips
+        options={CHIP_OPTIONS}
+        value={statusFilter}
+        onChange={setStatusFilter}
+        fetchCount={countByStatus}
+      />
+
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search by name, email, or partner ID" />
-        <Select id="statusFilter" options={STATUS_OPTIONS} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} />
+        <Select
+          id="statusFilter"
+          options={STATUS_OPTIONS}
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+        />
       </FilterBar>
-      <Table columns={columns} data={freelancers} isLoading={isLoading} emptyMessage="No freelancers found." />
+
+      <Table
+        columns={columns}
+        data={freelancers}
+        isLoading={isLoading}
+        emptyMessage="No freelancers match these filters."
+        onRowClick={(row) => navigate(`/admin/freelancers/${row.id}`)}
+      />
       <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
     </div>
   )

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { AlertTriangle } from 'lucide-react'
-import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
+import { Table, Pagination, SearchBar, FilterBar, StatusChips } from '../../components/data-display'
 import { Button, Badge, Modal, ErrorState, PageHeader } from '../../components/ui'
 import { Input, Select, Textarea } from '../../components/forms'
 import { listLeads, createLead } from '../../services/adminLeadService'
@@ -12,9 +12,22 @@ import { LEAD_STATUSES, STATUS_VARIANTS } from '../../utils/leadConstants'
 const STATUS_OPTIONS = [{ value: '', label: 'All Statuses' }, ...LEAD_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))]
 const FOLLOWUP_TYPES = ['PHONE_CALL', 'WHATSAPP', 'EMAIL', 'MEETING', 'VIDEO_CALL', 'SITE_VISIT', 'DEMO', 'OTHER']
 
+// A curated subset of the 13 lead statuses for the quick-filter strip.
+const CHIP_STATUSES = ['NEW', 'CONTACTED', 'FOLLOW_UP', 'NEGOTIATION', 'CONVERTED', 'LOST']
+const CHIP_OPTIONS = [
+  { value: '', label: 'All' },
+  ...CHIP_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) })),
+]
+
 const LIMIT = 20
 
+async function countByStatus(status) {
+  const res = await listLeads({ status: status || undefined, page: 1, limit: 1 })
+  return res?.meta?.total ?? 0
+}
+
 export default function LeadListPage() {
+  const navigate = useNavigate()
   const [leads, setLeads] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -95,25 +108,50 @@ export default function LeadListPage() {
       key: 'lead_number',
       header: 'Lead',
       render: (row) => (
-        <Link to={`/admin/leads/${row.id}`} className="text-primary hover:underline">
+        <Link
+          to={`/admin/leads/${row.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="font-medium text-primary hover:underline"
+        >
           {row.lead_number ?? `#${row.id}`}
         </Link>
       ),
     },
-    { key: 'client_name', header: 'Client', render: (row) => `${row.client_name}${row.company ? ` (${row.company})` : ''}` },
-    { key: 'mobile', header: 'Mobile' },
+    {
+      key: 'client_name',
+      header: 'Client',
+      render: (row) => (
+        <div className="min-w-0">
+          <p className="truncate text-text-primary">{row.client_name}</p>
+          <p className="text-xs text-text-muted">{row.company || row.mobile || '—'}</p>
+        </div>
+      ),
+    },
     { key: 'source', header: 'Source', render: (row) => row.source ?? '—' },
     {
       key: 'assigned_freelancer_name',
       header: 'Assigned To',
-      render: (row) => row.assigned_freelancer_name ?? <span className="text-text-secondary">Unassigned</span>,
+      render: (row) => row.assigned_freelancer_name ?? <span className="text-text-muted">Unassigned</span>,
     },
     {
       key: 'status',
       header: 'Status',
-      render: (row) => <Badge variant={STATUS_VARIANTS[row.status] ?? 'default'}>{row.status.replace(/_/g, ' ')}</Badge>,
+      render: (row) => (
+        <Badge variant={STATUS_VARIANTS[row.status] ?? 'default'} dot>
+          {row.status.replace(/_/g, ' ')}
+        </Badge>
+      ),
     },
-    { key: 'expected_value', header: 'Expected Value', render: (row) => (row.expected_value ? `₹${row.expected_value}` : '—') },
+    {
+      key: 'expected_value',
+      header: 'Expected Value',
+      render: (row) =>
+        row.expected_value ? (
+          <span className="tabular-nums">₹{Number(row.expected_value).toLocaleString('en-IN')}</span>
+        ) : (
+          '—'
+        ),
+    },
   ]
 
   return (
@@ -124,6 +162,8 @@ export default function LeadListPage() {
         actions={<Button onClick={openCreate}>Create Lead</Button>}
       />
 
+      <StatusChips options={CHIP_OPTIONS} value={statusFilter} onChange={setStatusFilter} fetchCount={countByStatus} />
+
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search name, mobile, email, lead number" />
         <Select id="statusFilter" options={STATUS_OPTIONS} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} />
@@ -133,7 +173,13 @@ export default function LeadListPage() {
         </label>
       </FilterBar>
 
-      <Table columns={columns} data={leads} isLoading={isLoading} emptyMessage="No leads found." />
+      <Table
+        columns={columns}
+        data={leads}
+        isLoading={isLoading}
+        emptyMessage="No leads found."
+        onRowClick={(row) => navigate(`/admin/leads/${row.id}`)}
+      />
       <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
 
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create Lead">

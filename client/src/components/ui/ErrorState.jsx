@@ -7,9 +7,9 @@ export default function ErrorState({
   onRetry,
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-danger/20 bg-danger-bg py-16 text-center">
-      <div className="mb-1 flex h-11 w-11 items-center justify-center rounded-full bg-surface text-danger">
-        <AlertTriangle className="h-5 w-5" strokeWidth={1.75} />
+    <div className="flex flex-col items-center justify-center gap-2.5 rounded-xl border border-danger/25 bg-danger-bg px-6 py-16 text-center">
+      <div className="mb-1 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface text-danger shadow-xs ring-1 ring-inset ring-danger/20">
+        <AlertTriangle className="h-6 w-6" strokeWidth={1.75} />
       </div>
       <h3 className="text-base font-semibold text-danger">{title}</h3>
       <p className="max-w-sm text-sm text-text-secondary">{description}</p>

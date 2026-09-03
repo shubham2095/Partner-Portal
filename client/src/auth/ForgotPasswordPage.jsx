@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
         id="email"
         label="Email"
         type="email"
-        placeholder="you@example.com"
+        placeholder="aditya.verma@gmail.com"
         error={errors.email?.message}
         {...register('email', { required: 'Email is required' })}
       />

@@ -1,8 +1,9 @@
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Home, Video, ClipboardCheck, Award, Target, GraduationCap, Wallet, Bell, User, CalendarClock, LifeBuoy } from 'lucide-react'
-import { BottomNav, Sidebar, Topbar } from '../components/navigation'
+import { BottomNav, Sidebar, Topbar, CommandPalette, AutoBreadcrumb } from '../components/navigation'
 import { PageLoader } from '../components/ui'
+import { useUiStore } from '../store/uiStore'
 
 const NAV_ITEMS = [
   { to: '/freelancer/dashboard', label: 'Home', icon: Home },
@@ -29,20 +30,26 @@ const BOTTOM_NAV_ITEMS = NAV_ITEMS.filter((item) =>
 )
 
 export default function FreelancerLayout() {
+  const openCommandPalette = useUiStore((s) => s.openCommandPalette)
+
   return (
     <div className="flex min-h-screen w-full bg-background">
       <div className="hidden sm:flex">
         <Sidebar items={NAV_ITEMS} title="Freelancer Portal" />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto p-4 pb-20 sm:pb-6">
-          <Suspense fallback={<PageLoader />}>
-            <Outlet />
-          </Suspense>
+        <Topbar onOpenSearch={openCommandPalette} />
+        <main className="scrollbar-thin flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-3xl animate-fade-in p-4 pb-24 sm:p-6 sm:pb-8 lg:max-w-5xl">
+            <AutoBreadcrumb />
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
+          </div>
         </main>
       </div>
       <BottomNav items={BOTTOM_NAV_ITEMS} />
+      <CommandPalette navItems={NAV_ITEMS} />
     </div>
   )
 }

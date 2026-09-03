@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
       <PasswordInput
         id="newPassword"
         label="New Password"
-        placeholder="********"
+        placeholder="At least 8 characters"
         autoComplete="new-password"
         error={errors.newPassword?.message}
         {...register('newPassword', {
@@ -53,7 +53,7 @@ export default function ResetPasswordPage() {
       <PasswordInput
         id="confirmPassword"
         label="Confirm New Password"
-        placeholder="********"
+        placeholder="Re-enter your password"
         autoComplete="new-password"
         error={errors.confirmPassword?.message}
         {...register('confirmPassword', {

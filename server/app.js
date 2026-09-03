@@ -13,6 +13,15 @@ import apiRoutes from './routes/index.js'
 
 const app = express()
 
+// In production the app runs behind Hostinger's reverse proxy, so the real
+// client IP arrives in X-Forwarded-For. Without this, express-rate-limit keys
+// every request by the proxy's single IP and one busy user throttles everyone.
+// Trust exactly one proxy hop rather than `true` (which would let a client
+// spoof its own X-Forwarded-For and dodge the limiter).
+if (env.isProduction) {
+  app.set('trust proxy', 1)
+}
+
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 app.use(cors(corsOptions))
 app.use(

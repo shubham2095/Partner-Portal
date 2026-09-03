@@ -24,7 +24,15 @@ export const loginValidator = [
   body('password').notEmpty().withMessage('Password is required'),
 ]
 
+export const googleLoginValidator = [
+  body('idToken').isString().trim().notEmpty().withMessage('Google credential is required'),
+]
+
 export const forgotPasswordValidator = [
+  body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
+]
+
+export const resendVerificationValidator = [
   body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
 ]
 

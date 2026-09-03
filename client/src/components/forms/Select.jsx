@@ -1,14 +1,15 @@
 import { forwardRef } from 'react'
 import { cn } from '../../utils/cn'
+import { fieldClass, fieldLabel, fieldErrorText } from './fieldStyles'
 
 const Select = forwardRef(function Select(
   { label, error, options = [], className, id, placeholder, ...props },
   ref
 ) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={id} className="text-sm font-medium text-text-primary">
+        <label htmlFor={id} className={fieldLabel}>
           {label}
         </label>
       )}
@@ -18,9 +19,9 @@ const Select = forwardRef(function Select(
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className={cn(
-          'rounded border border-border bg-surface px-3 py-2 text-sm text-text-primary focus-ring',
-          error && 'border-danger',
-          className
+          fieldClass(Boolean(error), className),
+          'cursor-pointer appearance-none bg-[length:1.1rem] bg-[right_0.65rem_center] bg-no-repeat pr-9',
+          "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")]"
         )}
         {...props}
       >
@@ -36,7 +37,7 @@ const Select = forwardRef(function Select(
         ))}
       </select>
       {error && (
-        <p id={`${id}-error`} className="text-xs text-danger">
+        <p id={`${id}-error`} className={fieldErrorText}>
           {error}
         </p>
       )}

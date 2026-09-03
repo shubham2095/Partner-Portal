@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
+import { Table, Pagination, SearchBar, FilterBar, StatusChips } from '../../components/data-display'
 import { Button, Badge, Modal, Card, ErrorState, PageHeader } from '../../components/ui'
 import { Input, Select } from '../../components/forms'
 import {
@@ -15,6 +15,10 @@ import {
 import { listLeads } from '../../services/adminLeadService'
 
 const COMMISSION_STATUSES = ['POTENTIAL', 'EARNED', 'APPROVED', 'PAYABLE', 'PAID', 'REJECTED']
+const CHIP_OPTIONS = [
+  { value: '', label: 'All' },
+  ...COMMISSION_STATUSES.map((s) => ({ value: s, label: s[0] + s.slice(1).toLowerCase() })),
+]
 
 const STATUS_VARIANTS = {
   POTENTIAL: 'default',
@@ -27,7 +31,15 @@ const STATUS_VARIANTS = {
 
 const LIMIT = 20
 
+const inr = (v) => `₹${Number(v ?? 0).toLocaleString('en-IN')}`
+
+async function countByStatus(status) {
+  const res = await listCommissions({ status: status || undefined, page: 1, limit: 1 })
+  return res?.meta?.total ?? 0
+}
+
 export default function CommissionListPage() {
+  const navigate = useNavigate()
   const [commissions, setCommissions] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -142,19 +154,40 @@ export default function CommissionListPage() {
       key: 'lead_number',
       header: 'Lead',
       render: (row) => (
-        <Link to={`/admin/commissions/${row.id}`} className="text-primary hover:underline">
+        <Link
+          to={`/admin/commissions/${row.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="font-medium text-primary hover:underline"
+        >
           {row.lead_number}
         </Link>
       ),
     },
     { key: 'client_name', header: 'Client' },
-    { key: 'freelancer_name', header: 'Freelancer', render: (row) => `${row.freelancer_name} (${row.partner_id ?? '—'})` },
-    { key: 'sale_value', header: 'Sale Value', render: (row) => `₹${row.sale_value}` },
-    { key: 'commission_amount', header: 'Commission', render: (row) => `₹${row.commission_amount}` },
+    {
+      key: 'freelancer_name',
+      header: 'Freelancer',
+      render: (row) => (
+        <div className="min-w-0">
+          <p className="truncate text-text-primary">{row.freelancer_name}</p>
+          <p className="text-xs text-text-muted">{row.partner_id ?? '—'}</p>
+        </div>
+      ),
+    },
+    { key: 'sale_value', header: 'Sale Value', render: (row) => <span className="tabular-nums">{inr(row.sale_value)}</span> },
+    {
+      key: 'commission_amount',
+      header: 'Commission',
+      render: (row) => <span className="font-semibold tabular-nums text-text-primary">{inr(row.commission_amount)}</span>,
+    },
     {
       key: 'status',
       header: 'Status',
-      render: (row) => <Badge variant={STATUS_VARIANTS[row.status] ?? 'default'}>{row.status}</Badge>,
+      render: (row) => (
+        <Badge variant={STATUS_VARIANTS[row.status] ?? 'default'} dot>
+          {row.status}
+        </Badge>
+      ),
     },
   ]
 
@@ -173,6 +206,8 @@ export default function CommissionListPage() {
         }
       />
 
+      <StatusChips options={CHIP_OPTIONS} value={statusFilter} onChange={setStatusFilter} fetchCount={countByStatus} />
+
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search client, lead number, freelancer" />
         <Select
@@ -183,7 +218,13 @@ export default function CommissionListPage() {
         />
       </FilterBar>
 
-      <Table columns={columns} data={commissions} isLoading={isLoading} emptyMessage="No commissions found." />
+      <Table
+        columns={columns}
+        data={commissions}
+        isLoading={isLoading}
+        emptyMessage="No commissions found."
+        onRowClick={(row) => navigate(`/admin/commissions/${row.id}`)}
+      />
       <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
 
       <Modal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} title="Manage Commission Rules">

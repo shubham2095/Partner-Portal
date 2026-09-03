@@ -1,37 +1,66 @@
+import { cn } from '../../utils/cn'
 import LoadingState from '../ui/LoadingState'
 import EmptyState from '../ui/EmptyState'
 
-export default function Table({ columns, data, isLoading, emptyMessage = 'No records found.', rowKey = 'id' }) {
-  if (isLoading) return <LoadingState label="Loading data..." />
-  if (!data?.length) return <EmptyState title={emptyMessage} />
+export default function Table({
+  columns,
+  data,
+  isLoading,
+  emptyMessage = 'No records found.',
+  rowKey = 'id',
+  onRowClick,
+}) {
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-border bg-surface">
+        <LoadingState label="Loading data..." />
+      </div>
+    )
+  }
+  if (!data?.length) {
+    return <EmptyState title={emptyMessage} />
+  }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="min-w-full divide-y divide-border text-sm">
-        <thead className="bg-surface-muted">
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className="px-4 py-3 text-left font-medium text-text-secondary"
-              >
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border bg-surface">
-          {data.map((row) => (
-            <tr key={row[rowKey]} className="hover:bg-surface-muted">
+    <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
+      <div className="scrollbar-thin overflow-x-auto">
+        <table className="min-w-full border-separate border-spacing-0 text-sm">
+          <thead>
+            <tr>
               {columns.map((col) => (
-                <td key={col.key} className="px-4 py-3 text-text-primary">
-                  {col.render ? col.render(row) : row[col.key]}
-                </td>
+                <th
+                  key={col.key}
+                  className="sticky top-0 z-10 border-b border-border bg-surface-muted/80 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.04em] text-text-secondary backdrop-blur"
+                >
+                  {col.header}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr
+                key={row[rowKey]}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={cn(
+                  'transition-colors',
+                  onRowClick && 'cursor-pointer',
+                  'hover:bg-primary-50/40'
+                )}
+              >
+                {columns.map((col) => (
+                  <td
+                    key={col.key}
+                    className="border-b border-border px-4 py-3 text-text-primary [tr:last-child_&]:border-b-0"
+                  >
+                    {col.render ? col.render(row) : row[col.key]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Table, Pagination, SearchBar, FilterBar, StatCard } from '../../components/data-display'
+import { Link, useNavigate } from 'react-router-dom'
+import { Table, Pagination, SearchBar, FilterBar, StatCard, StatusChips } from '../../components/data-display'
 import { Badge, ErrorState, PageHeader, EmptyState } from '../../components/ui'
 import { Select } from '../../components/forms'
 import { LifeBuoy, UserX, AlertTriangle } from 'lucide-react'
@@ -20,9 +20,21 @@ const STATUS_VARIANTS = {
 }
 const PRIORITY_VARIANTS = { LOW: 'default', MEDIUM: 'info', HIGH: 'warning', URGENT: 'danger' }
 
+const CHIP_STATUSES = ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
+const CHIP_OPTIONS = [
+  { value: '', label: 'All' },
+  ...CHIP_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) })),
+]
+
 const LIMIT = 20
 
+async function countByStatus(status) {
+  const res = await listTickets({ status: status || undefined, page: 1, limit: 1 })
+  return res?.meta?.total ?? 0
+}
+
 export default function TicketListPage() {
+  const navigate = useNavigate()
   const [tickets, setTickets] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -94,12 +106,25 @@ export default function TicketListPage() {
       key: 'ticket_number',
       header: 'Ticket',
       render: (row) => (
-        <Link to={`/admin/tickets/${row.id}`} className="text-primary hover:underline">
+        <Link
+          to={`/admin/tickets/${row.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="font-medium text-primary hover:underline"
+        >
           {row.ticket_number}
         </Link>
       ),
     },
-    { key: 'freelancer_name', header: 'Freelancer', render: (row) => `${row.freelancer_name} (${row.partner_id ?? '—'})` },
+    {
+      key: 'freelancer_name',
+      header: 'Freelancer',
+      render: (row) => (
+        <div className="min-w-0">
+          <p className="truncate text-text-primary">{row.freelancer_name}</p>
+          <p className="text-xs text-text-muted">{row.partner_id ?? '—'}</p>
+        </div>
+      ),
+    },
     { key: 'subject', header: 'Subject' },
     { key: 'category', header: 'Category', render: (row) => row.category.replace(/_/g, ' ') },
     {
@@ -126,6 +151,8 @@ export default function TicketListPage() {
           <StatCard label="High/Urgent Open" value={counts.highPriorityOpen} icon={AlertTriangle} accent="danger" />
         </div>
       )}
+
+      <StatusChips options={CHIP_OPTIONS} value={statusFilter} onChange={setStatusFilter} fetchCount={countByStatus} />
 
       <FilterBar>
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search subject, ticket number, freelancer" />
@@ -158,7 +185,14 @@ export default function TicketListPage() {
       {!isLoading && tickets.length === 0 ? (
         <EmptyState icon={LifeBuoy} title="No tickets" description="Tickets matching this view will appear here." />
       ) : (
-        <Table columns={columns} data={tickets} isLoading={isLoading} emptyMessage="No tickets found." rowKey="id" />
+        <Table
+          columns={columns}
+          data={tickets}
+          isLoading={isLoading}
+          emptyMessage="No tickets found."
+          rowKey="id"
+          onRowClick={(row) => navigate(`/admin/tickets/${row.id}`)}
+        />
       )}
       <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
     </div>

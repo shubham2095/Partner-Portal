@@ -25,29 +25,34 @@ apiClient.interceptors.response.use(
     const status = error.response?.status
     const message = error.response?.data?.message
 
+    // Give each error class a stable toast id so a burst of identical
+    // failures (e.g. a dashboard firing 12 parallel requests that all 429)
+    // collapses into a single toast instead of stacking a dozen.
+    const notify = (fallback) => toast.error(message || fallback, { id: `http-${status ?? 'network'}` })
+
     switch (status) {
       case 401:
         useAuthStore.getState().logout()
-        toast.error(message || 'Session expired. Please log in again.')
+        notify('Session expired. Please log in again.')
         break
       case 403:
-        toast.error(message || 'You do not have permission to do that.')
+        notify('You do not have permission to do that.')
         break
       case 404:
-        toast.error(message || 'Requested resource was not found.')
+        notify('Requested resource was not found.')
         break
       case 422:
-        toast.error(message || 'Please check the submitted data.')
+        notify('Please check the submitted data.')
         break
       case 429:
-        toast.error(message || 'Too many requests. Please slow down.')
+        notify('Too many requests. Please slow down.')
         break
       case 500:
-        toast.error(message || 'Something went wrong on our end.')
+        notify('Something went wrong on our end.')
         break
       default:
         if (!error.response) {
-          toast.error('Unable to reach the server. Check your connection.')
+          toast.error('Unable to reach the server. Check your connection.', { id: 'http-network' })
         }
     }
 

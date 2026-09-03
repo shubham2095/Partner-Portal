@@ -42,7 +42,9 @@ export const env = {
 
   rateLimit: {
     windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-    maxRequests: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+    // Fallback kept high on purpose: an authenticated dashboard load costs
+    // ~15 requests, so a low ceiling locks real users out. Override per-env.
+    maxRequests: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 1500,
   },
 
   certificate: {
@@ -66,6 +68,10 @@ export const env = {
 
   googleLeadForms: {
     sharedKey: process.env.GOOGLE_LEAD_FORMS_SHARED_KEY || null,
+  },
+
+  googleAuth: {
+    clientId: process.env.GOOGLE_CLIENT_ID || null,
   },
 
   automation: {

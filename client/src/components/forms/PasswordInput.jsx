@@ -1,5 +1,6 @@
 import { forwardRef, useState } from 'react'
 import { cn } from '../../utils/cn'
+import { fieldClass, fieldLabel, fieldErrorText } from './fieldStyles'
 
 function EyeIcon({ open }) {
   return open ? (
@@ -26,9 +27,9 @@ const PasswordInput = forwardRef(function PasswordInput({ label, error, classNam
   const [visible, setVisible] = useState(false)
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={id} className="text-sm font-medium text-text-primary">
+        <label htmlFor={id} className={fieldLabel}>
           {label}
         </label>
       )}
@@ -39,17 +40,13 @@ const PasswordInput = forwardRef(function PasswordInput({ label, error, classNam
           type={visible ? 'text' : 'password'}
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={error ? `${id}-error` : undefined}
-          className={cn(
-            'w-full rounded border border-border bg-surface px-3 py-2 pr-10 text-sm text-text-primary focus-ring',
-            error && 'border-danger',
-            className
-          )}
+          className={fieldClass(Boolean(error), cn('pr-11', className))}
           {...props}
         />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
-          className="absolute inset-y-0 right-0 flex items-center px-3 text-text-muted hover:text-text-secondary focus-ring rounded"
+          className="absolute inset-y-0 right-0 flex items-center rounded-r-lg px-3 text-text-muted transition-colors hover:text-text-secondary focus-ring-visible"
           aria-label={visible ? 'Hide password' : 'Show password'}
           aria-pressed={visible}
           tabIndex={-1}
@@ -58,7 +55,7 @@ const PasswordInput = forwardRef(function PasswordInput({ label, error, classNam
         </button>
       </div>
       {error && (
-        <p id={`${id}-error`} className="text-xs text-danger">
+        <p id={`${id}-error`} className={fieldErrorText}>
           {error}
         </p>
       )}
