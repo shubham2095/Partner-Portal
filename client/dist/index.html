@@ -14,15 +14,13 @@
     <title>Partner Portal</title>
     <script src="https://accounts.google.com/gsi/client" async></script>
     <script>
-      // Apply the saved (or system) colour theme before first paint so there
-      // is no flash of the wrong theme while the app bundle loads.
+      // Apply the saved theme before first paint (no flash). First-time
+      // visitors always start in light mode; they can switch and it sticks.
       (function () {
         try {
-          var t = localStorage.getItem('partner-portal-theme')
-          if (t !== 'light' && t !== 'dark') {
-            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          if (localStorage.getItem('partner-portal-theme') === 'dark') {
+            document.documentElement.classList.add('dark')
           }
-          if (t === 'dark') document.documentElement.classList.add('dark')
         } catch (e) {}
       })()
     </script>
@@ -74,11 +72,11 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-D5Bp0Ppa.js"></script>
+    <script type="module" crossorigin src="/assets/index-CXcW_VMt.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/authStore-Ba1FmPPt.js">
     <link rel="modulepreload" crossorigin href="/assets/createLucideIcon-yaflu5JI.js">
     <link rel="modulepreload" crossorigin href="/assets/Button-C5f06-0o.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-BulDbmc3.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-CTHQ0SGu.css">
   </head>
   <body>
     <div id="root">

@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useListQuery } from '../../hooks/useListQuery'
+import { useDisclosure } from '../../hooks/useDisclosure'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -40,43 +43,31 @@ async function countByStatus(status) {
 
 export default function CommissionListPage() {
   const navigate = useNavigate()
-  const [commissions, setCommissions] = useState([])
-  const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
+  const search = useDebouncedValue(searchInput, 300)
   const [statusFilter, setStatusFilter] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasError, setHasError] = useState(false)
 
-  const [isRulesOpen, setIsRulesOpen] = useState(false)
+  const {
+    rows: commissions,
+    page,
+    setPage,
+    totalPages,
+    isLoading,
+    hasError,
+    reload,
+  } = useListQuery(
+    (params) => listCommissions(params).then((r) => ({ rows: r.data.commissions, total: r.meta.total })),
+    { status: statusFilter || undefined, search: search || undefined, sortBy: 'created_at', sortDir: 'DESC' },
+    { limit: LIMIT }
+  )
+
+  const rulesModal = useDisclosure()
   const [rules, setRules] = useState([])
   const ruleForm = useForm({ defaultValues: { serviceName: '', rateType: 'PERCENTAGE', rateValue: '' } })
 
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const createModal = useDisclosure()
   const [convertedLeads, setConvertedLeads] = useState([])
   const createForm = useForm({ defaultValues: { leadId: '' } })
-
-  const loadCommissions = async () => {
-    setIsLoading(true)
-    setHasError(false)
-    try {
-      const response = await listCommissions({
-        status: statusFilter || undefined,
-        search: search || undefined,
-        sortBy: 'created_at',
-        sortDir: 'DESC',
-        page,
-        limit: LIMIT,
-      })
-      setCommissions(response.data.commissions)
-      setTotal(response.meta.total)
-    } catch (error) {
-      setHasError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const loadRules = async () => {
     try {
@@ -99,20 +90,6 @@ export default function CommissionListPage() {
     loadRules()
     loadConvertedLeads()
   }, [])
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
-
-  useEffect(() => {
-    setPage(1)
-  }, [search, statusFilter])
-
-  useEffect(() => {
-    loadCommissions()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, statusFilter])
 
   const onCreateRule = async (values) => {
     try {
@@ -138,16 +115,16 @@ export default function CommissionListPage() {
     try {
       await createCommission(Number(values.leadId))
       toast.success('Commission created')
-      setIsCreateOpen(false)
+      createModal.close()
       createForm.reset()
-      await loadCommissions()
+      await reload()
       await loadConvertedLeads()
     } catch (error) {
       // apiClient interceptor already surfaces an error toast
     }
   }
 
-  if (hasError) return <ErrorState onRetry={loadCommissions} />
+  if (hasError) return <ErrorState onRetry={reload} />
 
   const columns = [
     {
@@ -198,10 +175,10 @@ export default function CommissionListPage() {
         description="Track commission records, rules and payouts."
         actions={
           <>
-            <Button variant="secondary" onClick={() => setIsRulesOpen(true)}>
+            <Button variant="secondary" onClick={() => rulesModal.open()}>
               Manage Rules
             </Button>
-            <Button onClick={() => setIsCreateOpen(true)}>Create Commission</Button>
+            <Button onClick={() => createModal.open()}>Create Commission</Button>
           </>
         }
       />
@@ -225,9 +202,9 @@ export default function CommissionListPage() {
         emptyMessage="No commissions found."
         onRowClick={(row) => navigate(`/admin/commissions/${row.id}`)}
       />
-      <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
-      <Modal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} title="Manage Commission Rules">
+      <Modal isOpen={rulesModal.isOpen} onClose={() => rulesModal.close()} title="Manage Commission Rules">
         <div className="flex flex-col gap-4">
           <form onSubmit={ruleForm.handleSubmit(onCreateRule)} className="flex flex-col gap-3">
             <Input id="serviceName" label="Service Name" {...ruleForm.register('serviceName', { required: true })} />
@@ -264,7 +241,7 @@ export default function CommissionListPage() {
         </div>
       </Modal>
 
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create Commission">
+      <Modal isOpen={createModal.isOpen} onClose={() => createModal.close()} title="Create Commission">
         <form onSubmit={createForm.handleSubmit(onCreateCommission)} className="flex flex-col gap-4">
           <Select
             id="leadId"

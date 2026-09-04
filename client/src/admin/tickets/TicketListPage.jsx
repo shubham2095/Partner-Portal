@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useListQuery } from '../../hooks/useListQuery'
 import { Link, useNavigate } from 'react-router-dom'
 import { Table, Pagination, SearchBar, FilterBar, StatCard, StatusChips } from '../../components/data-display'
 import { Badge, ErrorState, PageHeader, EmptyState } from '../../components/ui'
@@ -35,71 +37,47 @@ async function countByStatus(status) {
 
 export default function TicketListPage() {
   const navigate = useNavigate()
-  const [tickets, setTickets] = useState([])
-  const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
   const [adminFilter, setAdminFilter] = useState('')
   const [admins, setAdmins] = useState([])
   const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasError, setHasError] = useState(false)
+  const search = useDebouncedValue(searchInput, 300)
   const [counts, setCounts] = useState(null)
 
-  const loadTickets = async () => {
-    setIsLoading(true)
-    setHasError(false)
-    try {
-      const response = await listTickets({
-        status: statusFilter || undefined,
-        category: categoryFilter || undefined,
-        priority: priorityFilter || undefined,
-        assignedAdminId: adminFilter || undefined,
-        search: search || undefined,
-        page,
-        limit: LIMIT,
-      })
-      setTickets(response.data.tickets)
-      setTotal(response.meta.total)
-    } catch (error) {
-      setHasError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const loadSidebarData = async () => {
-    try {
-      const [countsData, adminsData] = await Promise.all([getDashboardCounts(), listAssignableAdmins()])
-      setCounts(countsData)
-      setAdmins(adminsData)
-    } catch (error) {
-      // handled by interceptor toast
-    }
-  }
+  const {
+    rows: tickets,
+    page,
+    setPage,
+    totalPages,
+    isLoading,
+    hasError,
+    reload,
+  } = useListQuery(
+    (params) => listTickets(params).then((r) => ({ rows: r.data.tickets, total: r.meta.total })),
+    {
+      status: statusFilter || undefined,
+      category: categoryFilter || undefined,
+      priority: priorityFilter || undefined,
+      assignedAdminId: adminFilter || undefined,
+      search: search || undefined,
+    },
+    { limit: LIMIT }
+  )
 
   useEffect(() => {
-    loadSidebarData()
+    Promise.all([getDashboardCounts(), listAssignableAdmins()])
+      .then(([countsData, adminsData]) => {
+        setCounts(countsData)
+        setAdmins(adminsData)
+      })
+      .catch(() => {
+        /* handled by interceptor toast */
+      })
   }, [])
 
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
-
-  useEffect(() => {
-    setPage(1)
-  }, [statusFilter, categoryFilter, priorityFilter, adminFilter, search])
-
-  useEffect(() => {
-    loadTickets()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter, categoryFilter, priorityFilter, adminFilter, search])
-
-  if (hasError) return <ErrorState title="Unable to load tickets" onRetry={loadTickets} />
+  if (hasError) return <ErrorState title="Unable to load tickets" onRetry={reload} />
 
   const columns = [
     {
@@ -194,7 +172,7 @@ export default function TicketListPage() {
           onRowClick={(row) => navigate(`/admin/tickets/${row.id}`)}
         />
       )}
-      <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -41,7 +42,7 @@ export default function FollowUpsPage() {
   const [typeFilter, setTypeFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
   const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
+  const search = useDebouncedValue(searchInput, 300)
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
 
@@ -77,11 +78,6 @@ export default function FollowUpsPage() {
       setIsLoading(false)
     }
   }
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
 
   useEffect(() => {
     setPage(1)

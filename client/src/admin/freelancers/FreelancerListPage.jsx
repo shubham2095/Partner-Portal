@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useListQuery } from '../../hooks/useListQuery'
 import { Link, useNavigate } from 'react-router-dom'
 import { Table, Pagination, SearchBar, FilterBar, StatusChips } from '../../components/data-display'
 import Select from '../../components/forms/Select'
@@ -55,49 +57,25 @@ function formatDate(value) {
 
 export default function FreelancerListPage() {
   const navigate = useNavigate()
-  const [freelancers, setFreelancers] = useState([])
-  const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
+  const search = useDebouncedValue(searchInput, 300)
   const [statusFilter, setStatusFilter] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasError, setHasError] = useState(false)
 
-  const loadFreelancers = async () => {
-    setIsLoading(true)
-    setHasError(false)
-    try {
-      const response = await listFreelancers({
-        status: statusFilter || undefined,
-        search: search || undefined,
-        page,
-        limit: LIMIT,
-      })
-      setFreelancers(response.data.freelancers)
-      setTotal(response.meta.total)
-    } catch (error) {
-      setHasError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const {
+    rows: freelancers,
+    page,
+    setPage,
+    totalPages,
+    isLoading,
+    hasError,
+    reload,
+  } = useListQuery(
+    (params) => listFreelancers(params).then((r) => ({ rows: r.data.freelancers, total: r.meta.total })),
+    { status: statusFilter || undefined, search: search || undefined },
+    { limit: LIMIT }
+  )
 
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
-
-  useEffect(() => {
-    setPage(1)
-  }, [search, statusFilter])
-
-  useEffect(() => {
-    loadFreelancers()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, statusFilter])
-
-  if (hasError) return <ErrorState title="Unable to load freelancers" onRetry={loadFreelancers} />
+  if (hasError) return <ErrorState title="Unable to load freelancers" onRetry={reload} />
 
   const columns = [
     {
@@ -186,7 +164,7 @@ export default function FreelancerListPage() {
         emptyMessage="No freelancers match these filters."
         onRowClick={(row) => navigate(`/admin/freelancers/${row.id}`)}
       />
-      <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   )
 }

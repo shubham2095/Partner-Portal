@@ -1,12 +1,14 @@
 # Digital Marketing Partner Portal
 
-Phase 0 — Foundation & Project Setup.
+Full-stack partner sales platform (Phases 0–7 complete, plus a post-7
+enhancement pass — see `memory.md` §16).
 
 ## Stack
 
-- Frontend: React 18, Vite, Tailwind CSS 3, React Router DOM, Zustand, react-hook-form, react-hot-toast, framer-motion, recharts, axios
-- Backend: Node.js, Express, MySQL (mysql2), JWT, bcryptjs, multer, nodemailer, express-validator, cors, helmet, PDFKit, qrcode
-- Database: MySQL (XAMPP / phpMyAdmin)
+- Frontend: React 19, Vite 8, Tailwind CSS 3 (dark mode), React Router DOM 7, Zustand, react-hook-form, react-hot-toast, framer-motion, recharts, axios, lucide-react. Fonts: Inter + Plus Jakarta Sans (Google Fonts).
+- Backend: Node.js, Express 5, MySQL (mysql2), JWT, bcryptjs, multer, nodemailer, express-validator, cors, helmet, express-rate-limit, PDFKit, qrcode, node-cron, google-auth-library.
+- Database: MySQL (XAMPP / phpMyAdmin locally; Hostinger-managed in production).
+- Auth: email + password with **enforced email verification** for freelancers, plus **Google Sign-In**.
 
 ## Getting started
 
@@ -56,4 +58,27 @@ See `architecture.md` for the full folder structure and technology decisions.
 - `rules.md` — development rules
 - `phases.md` — implementation phases
 - `design.md` — design system
-- `memory.md` — persistent project memory/source of truth
+- `memory.md` — persistent project memory/source of truth (see **§16** for everything added after Phase 7)
+- `HOSTINGER_DEPLOYMENT.md` — production deployment guide
+
+## Extra environment variables (post-Phase-7)
+
+```bash
+# Google Sign-In (OAuth 2.0 Web client id — not a secret)
+GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com   # client/.env — baked in at build
+
+# Email (required for freelancer email verification)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=you@gmail.com
+SMTP_PASSWORD=your_16_char_app_password
+SMTP_FROM_NAME=Heltog Partner Portal
+SMTP_FROM_EMAIL=you@gmail.com
+
+# Production only
+RATE_LIMIT_MAX_REQUESTS=1500   # 100 is far too low for an authenticated SPA
+```
+
+Run `npm run migrate` (or apply migration `0057`) after pulling — it adds
+`auth_provider` / `google_sub` to `users`.

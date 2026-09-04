@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { Link } from 'react-router-dom'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
 import { Badge, ErrorState, PageHeader } from '../../components/ui'
@@ -20,7 +21,7 @@ export default function CertificateListPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
+  const search = useDebouncedValue(searchInput, 300)
   const [statusFilter, setStatusFilter] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
@@ -43,11 +44,6 @@ export default function CertificateListPage() {
       setIsLoading(false)
     }
   }
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
 
   useEffect(() => {
     setPage(1)

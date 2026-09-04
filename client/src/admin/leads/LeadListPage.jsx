@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useListQuery } from '../../hooks/useListQuery'
+import { useDisclosure } from '../../hooks/useDisclosure'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -28,60 +31,39 @@ async function countByStatus(status) {
 
 export default function LeadListPage() {
   const navigate = useNavigate()
-  const [leads, setLeads] = useState([])
-  const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
+  const search = useDebouncedValue(searchInput, 300)
   const [statusFilter, setStatusFilter] = useState('')
   const [unassignedOnly, setUnassignedOnly] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasError, setHasError] = useState(false)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const createModal = useDisclosure()
   const [duplicateWarning, setDuplicateWarning] = useState(null)
 
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm()
 
-  const loadLeads = async () => {
-    setIsLoading(true)
-    setHasError(false)
-    try {
-      const response = await listLeads({
-        status: statusFilter || undefined,
-        unassigned: unassignedOnly || undefined,
-        search: search || undefined,
-        sortBy: 'created_at',
-        sortDir: 'DESC',
-        page,
-        limit: LIMIT,
-      })
-      setLeads(response.data.leads)
-      setTotal(response.meta.total)
-    } catch (error) {
-      setHasError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
-
-  useEffect(() => {
-    setPage(1)
-  }, [search, statusFilter, unassignedOnly])
-
-  useEffect(() => {
-    loadLeads()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, statusFilter, unassignedOnly])
+  const {
+    rows: leads,
+    page,
+    setPage,
+    totalPages,
+    isLoading,
+    hasError,
+    reload,
+  } = useListQuery(
+    (params) => listLeads(params).then((r) => ({ rows: r.data.leads, total: r.meta.total })),
+    {
+      status: statusFilter || undefined,
+      unassigned: unassignedOnly || undefined,
+      search: search || undefined,
+      sortBy: 'created_at',
+      sortDir: 'DESC',
+    },
+    { limit: LIMIT }
+  )
 
   const openCreate = () => {
     setDuplicateWarning(null)
     reset()
-    setIsCreateOpen(true)
+    createModal.open()
   }
 
   const onCreate = async (values) => {
@@ -89,9 +71,9 @@ export default function LeadListPage() {
     try {
       await createLead(values)
       toast.success('Lead created')
-      setIsCreateOpen(false)
+      createModal.close()
       reset()
-      await loadLeads()
+      await reload()
     } catch (error) {
       if (error.response?.status === 409) {
         setDuplicateWarning(error.response.data.errors)
@@ -101,7 +83,7 @@ export default function LeadListPage() {
     }
   }
 
-  if (hasError) return <ErrorState title="Unable to load leads" onRetry={loadLeads} />
+  if (hasError) return <ErrorState title="Unable to load leads" onRetry={reload} />
 
   const columns = [
     {
@@ -180,9 +162,9 @@ export default function LeadListPage() {
         emptyMessage="No leads found."
         onRowClick={(row) => navigate(`/admin/leads/${row.id}`)}
       />
-      <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create Lead">
+      <Modal isOpen={createModal.isOpen} onClose={createModal.close} title="Create Lead">
         <form onSubmit={handleSubmit(onCreate)} className="flex flex-col gap-4">
           {duplicateWarning && (
             <div className="flex flex-col gap-2 rounded-md border border-warning/30 bg-warning-bg p-3 text-sm text-warning">
@@ -198,7 +180,7 @@ export default function LeadListPage() {
                       <Link
                         to={`/admin/leads/${match.id}`}
                         className="font-medium text-primary hover:underline"
-                        onClick={() => setIsCreateOpen(false)}
+                        onClick={createModal.close}
                       >
                         {match.leadNumber} — {match.clientName} ({match.status})
                       </Link>

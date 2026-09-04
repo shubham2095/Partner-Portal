@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useFieldArray, useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { Table, Pagination, SearchBar, FilterBar } from '../../components/data-display'
@@ -146,7 +147,7 @@ export default function QuestionListPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
+  const search = useDebouncedValue(searchInput, 300)
   const [difficultyFilter, setDifficultyFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -172,11 +173,6 @@ export default function QuestionListPage() {
       setIsLoading(false)
     }
   }
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
 
   useEffect(() => {
     setPage(1)

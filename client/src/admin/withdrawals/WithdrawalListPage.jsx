@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useListQuery } from '../../hooks/useListQuery'
 import { Link, useNavigate } from 'react-router-dom'
 import { Table, Pagination, SearchBar, FilterBar, StatusChips } from '../../components/data-display'
 import { Badge, ErrorState, PageHeader, EmptyState } from '../../components/ui'
@@ -26,49 +28,25 @@ function formatDateTime(value) {
 
 export default function WithdrawalListPage() {
   const navigate = useNavigate()
-  const [withdrawals, setWithdrawals] = useState([])
-  const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('PENDING')
   const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasError, setHasError] = useState(false)
+  const search = useDebouncedValue(searchInput, 300)
 
-  const loadWithdrawals = async () => {
-    setIsLoading(true)
-    setHasError(false)
-    try {
-      const response = await listWithdrawals({
-        status: statusFilter || undefined,
-        search: search || undefined,
-        page,
-        limit: LIMIT,
-      })
-      setWithdrawals(response.data.withdrawals)
-      setTotal(response.meta.total)
-    } catch (error) {
-      setHasError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const {
+    rows: withdrawals,
+    page,
+    setPage,
+    totalPages,
+    isLoading,
+    hasError,
+    reload,
+  } = useListQuery(
+    (params) => listWithdrawals(params).then((r) => ({ rows: r.data.withdrawals, total: r.meta.total })),
+    { status: statusFilter || undefined, search: search || undefined },
+    { limit: LIMIT }
+  )
 
-  useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(timeout)
-  }, [searchInput])
-
-  useEffect(() => {
-    setPage(1)
-  }, [statusFilter, search])
-
-  useEffect(() => {
-    loadWithdrawals()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter, search])
-
-  if (hasError) return <ErrorState title="Unable to load withdrawals" onRetry={loadWithdrawals} />
+  if (hasError) return <ErrorState title="Unable to load withdrawals" onRetry={reload} />
 
   const columns = [
     {
@@ -134,7 +112,7 @@ export default function WithdrawalListPage() {
           onRowClick={(row) => navigate(`/admin/withdrawals/${row.id}`)}
         />
       )}
-      <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / LIMIT))} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   )
 }
