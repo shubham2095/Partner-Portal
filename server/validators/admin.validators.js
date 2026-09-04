@@ -15,7 +15,9 @@ export const listFreelancersValidator = [
   query('status').optional().isIn(PROFILE_STATUSES).withMessage('Invalid status filter'),
   query('search').optional().trim().isLength({ max: 150 }),
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  // Cap allows admin screens that load the whole roster into a picker
+  // (Reports "All Freelancers", lead assignment, etc.) to request it in one call.
+  query('limit').optional().isInt({ min: 1, max: 500 }).withMessage('Limit must be between 1 and 500'),
 ]
 
 export const freelancerIdParamValidator = [
