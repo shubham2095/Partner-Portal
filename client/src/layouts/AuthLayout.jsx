@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { GraduationCap, Target, HandCoins, TrendingUp, CheckCircle2, Award, ShieldCheck } from 'lucide-react'
 import { PageLoader } from '../components/ui'
+import { ThemeToggle } from '../components/navigation'
 
 const BENEFITS = [
   { icon: GraduationCap, text: 'Free training + a QR-verifiable certificate' },
@@ -110,6 +111,7 @@ export default function AuthLayout() {
           aria-hidden
           className="pointer-events-none absolute -top-40 right-[-6rem] h-[28rem] w-[28rem] rounded-full bg-primary/10 blur-3xl"
         />
+        <ThemeToggle className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6" />
         <div className="relative w-full max-w-md">
           <div className="mb-8 flex justify-center lg:hidden">
             <img src="/heltog-logo.webp" alt="Heltog Technologies" className="h-9 w-auto" />

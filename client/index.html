@@ -14,15 +14,13 @@
     <title>Partner Portal</title>
     <script src="https://accounts.google.com/gsi/client" async></script>
     <script>
-      // Apply the saved (or system) colour theme before first paint so there
-      // is no flash of the wrong theme while the app bundle loads.
+      // Apply the saved theme before first paint (no flash). First-time
+      // visitors always start in light mode; they can switch and it sticks.
       (function () {
         try {
-          var t = localStorage.getItem('partner-portal-theme')
-          if (t !== 'light' && t !== 'dark') {
-            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          if (localStorage.getItem('partner-portal-theme') === 'dark') {
+            document.documentElement.classList.add('dark')
           }
-          if (t === 'dark') document.documentElement.classList.add('dark')
         } catch (e) {}
       })()
     </script>

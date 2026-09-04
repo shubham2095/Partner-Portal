@@ -7,10 +7,11 @@ function readStoredTheme() {
   try {
     const stored = localStorage.getItem(THEME_KEY)
     if (stored === 'light' || stored === 'dark') return stored
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   } catch {
-    return 'light'
+    /* storage unavailable */
   }
+  // First visit always starts light; the user can switch and it's remembered.
+  return 'light'
 }
 
 function applyTheme(theme) {

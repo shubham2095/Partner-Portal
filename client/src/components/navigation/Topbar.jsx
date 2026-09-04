@@ -1,14 +1,13 @@
-import { PanelLeft, Menu, LogOut, Sun, Moon, Search } from 'lucide-react'
+import { PanelLeft, Menu, LogOut, Search } from 'lucide-react'
 import { useUiStore } from '../../store/uiStore'
 import { useAuthStore } from '../../store/authStore'
 import Avatar from '../ui/Avatar'
 import Dropdown from './Dropdown'
+import ThemeToggle from './ThemeToggle'
 
 export default function Topbar({ showMobileMenuToggle = false, onOpenSearch }) {
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
   const toggleMobileNav = useUiStore((state) => state.toggleMobileNav)
-  const theme = useUiStore((state) => state.theme)
-  const toggleTheme = useUiStore((state) => state.toggleTheme)
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const displayName = user?.full_name ?? user?.email ?? 'Account'
@@ -54,9 +53,7 @@ export default function Topbar({ showMobileMenuToggle = false, onOpenSearch }) {
           </button>
         )}
 
-        <button onClick={toggleTheme} className={iconButton} aria-label="Toggle dark mode">
-          {theme === 'dark' ? <Sun className="h-5 w-5" strokeWidth={2} /> : <Moon className="h-5 w-5" strokeWidth={2} />}
-        </button>
+        <ThemeToggle />
 
         <Dropdown
           trigger={
